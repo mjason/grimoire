@@ -47,12 +47,13 @@ function htmlShell(config: GrimoireConfig): string {
   const title = escapeHtml(config.title ?? "Grimoire");
   const desc = escapeHtml(config.description ?? "");
   const mode = config.theme?.defaultMode ?? "system";
+  const lang = config.i18n?.defaultLocale ?? "en";
   const [accent, accentFg] = ACCENTS[config.theme?.accent ?? "violet"] ?? ACCENTS.violet!;
   const accentStyle = `:root{--accent:${accent};--accent-fg:${accentFg};--accent-soft:color-mix(in srgb, ${accent} 14%, transparent);}`;
   // Inline boot script: set the color mode before paint to avoid a flash.
   const boot = `(()=>{try{var m=localStorage.getItem("grimoire-mode")||${JSON.stringify(mode)};var d=m==="dark"||(m==="system"&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d);}catch(e){}})();`;
   return `<!doctype html>
-<html lang="en">
+<html lang="${lang}">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -127,8 +128,9 @@ export async function build(): Promise<void> {
   await rm(DIST_DIR, { recursive: true, force: true });
   await mkdir(DIST_DIR, { recursive: true });
 
-  const { notes, components } = await writeManifest();
   const config = await loadConfig();
+  const locales = (config.i18n?.locales ?? []).map((l) => l.code);
+  const { notes, components } = await writeManifest(locales);
 
   const bytes = await bundleClient();
   await runTailwind();

@@ -1,0 +1,55 @@
+---
+title: 快速开始
+description: 快速了解一篇 Grimoire 笔记能做什么。
+tags: [指南, 入门]
+date: "2026-06-27"
+icon: 🚀
+order: 0
+---
+
+欢迎使用 **Grimoire** —— 用 MDX 编写笔记，渲染成一个快速的小应用，并能打包成单个二进制文件分发。
+
+<Callout type="tip" title="无需导入">
+像 `<Chart/>`、`<DataTable/>`、`<Callout/>` 这样的内置组件随处可用。把组件放进 `components/` 目录也会被自动注册。
+</Callout>
+
+## 图表
+
+<Chart
+  type="bar"
+  title="季度营收（千美元）"
+  data={{
+    labels: ["一季度", "二季度", "三季度", "四季度"],
+    datasets: [
+      { label: "2025", data: [42, 55, 61, 70] },
+      { label: "2026", data: [50, 64, 73, 88] },
+    ],
+  }}
+/>
+
+## 可交互表格
+
+<DataTable
+  searchable
+  data={[
+    { name: "Ada Lovelace", field: "计算", year: 1843, score: 99 },
+    { name: "Grace Hopper", field: "编译器", year: 1952, score: 97 },
+    { name: "Katherine Johnson", field: "轨道力学", year: 1961, score: 98 },
+    { name: "Hedy Lamarr", field: "扩频通信", year: 1942, score: 95 },
+  ]}
+/>
+
+## 代码查看器
+
+每个代码块都会被自动高亮，并支持文件名、行号与高亮行：
+
+```ts title="server.ts" showLineNumbers {2}
+const port = 4321;
+serve({ port, fetch: () => new Response("📓") }); // 高亮这一行
+```
+
+## 自定义组件
+
+<StatCard label="活跃笔记" value="128" delta="+8%" trend="up" />
+
+就这么简单 —— 写 Markdown，加入组件，然后重新构建。

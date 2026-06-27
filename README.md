@@ -89,6 +89,54 @@ bun run new data/quarterly-sales --title "Quarterly Sales" --tags finance,dashbo
 
 See the **Component Gallery** note in the running app for live examples of every one.
 
+### Code blocks → code viewer
+
+Every fenced code block is a code viewer: syntax-highlighted at build time, with a
+copy button on hover. Add metadata after the language for more:
+
+````mdx
+```ts title="src/server.ts" showLineNumbers {2,4-6}
+// filename header, language badge, line numbers, and lines 2 + 4-6 highlighted
+```
+````
+
+| Meta | Effect |
+|------|--------|
+| ` ```ts ` | Syntax highlight + copy button |
+| `title="file.ts"` | Filename header + language badge |
+| `showLineNumbers` | Line-number gutter |
+| `{2,4-6}` | Highlight lines 2 and 4–6 |
+
+Very tall blocks collapse with a **Show more** control.
+
+## Internationalization
+
+Grimoire is multi-language out of the box. Enable it in `config.ts`:
+
+```ts
+i18n: {
+  defaultLocale: "en",
+  locales: [
+    { code: "en", label: "English" },
+    { code: "zh", label: "中文" },
+  ],
+},
+```
+
+Then a **language switcher** appears in the sidebar. The UI (search, headings…) is
+translated, and notes are filtered to the active language.
+
+Name a translated note with a language suffix — it shares the base slug, so
+switching language keeps you on the same note:
+
+```
+notes/guides/getting-started.mdx       → English  (default)
+notes/guides/getting-started.zh.mdx    → 中文
+```
+
+Untranslated notes stay visible in the default language, so you can translate
+incrementally.
+
 ## Adding a custom component
 
 Drop a `.tsx` file in `components/`. Every named export is auto-registered and

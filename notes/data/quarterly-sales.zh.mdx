@@ -1,0 +1,125 @@
+---
+title: 季度销售仪表盘
+description: 一览 2026 年第一季度的营收、MRR 与重点客户健康度。
+tags: [数据, 财务, 仪表盘]
+date: "2026-04-15"
+icon: 📊
+order: 1
+---
+
+这是 **2026 年第一季度**（截至 3 月 31 日的季度）的财务快照。所有数字均以美元计，
+并且在下方的指标卡、图表与客户表格之间相互对账——第一季度总营收
+**482 万美元**正是四个地区、四条产品线，以及全文呈现的
+经常性收入 + 服务收入拆分之和。
+
+<CardGrid columns={4}>
+  <StatCard label="营收（Q1）" value="$4.82M" delta="+9.5%" trend="up" />
+  <StatCard label="毛利率" value="73.2%" delta="+1.8 pts" trend="up" />
+  <StatCard label="新增客户" value="342" delta="+9%" trend="up" />
+  <StatCard label="总流失率" value="2.1%" delta="-0.4 pts" trend="down" />
+</CardGrid>
+
+## 各地区营收
+
+过去四个季度按季度确认的营收（千美元）。北美依然领先，但亚太是增长最快的地区——
+**环比增长 15%**。
+
+<Chart
+  type="bar"
+  title="各地区营收（千美元）"
+  caption="确认营收，最近四个季度。"
+  height={320}
+  data={{
+    labels: ["Q2 2025", "Q3 2025", "Q4 2025", "Q1 2026"],
+    datasets: [
+      { label: "北美", data: [1980, 2110, 2240, 2420] },
+      { label: "欧洲、中东与非洲", data: [1240, 1300, 1380, 1510] },
+      { label: "亚太", data: [480, 540, 600, 690] },
+      { label: "拉丁美洲", data: [150, 165, 180, 200] },
+    ],
+  }}
+/>
+
+<Callout type="success" title="亚太表现亮眼">
+亚太营收环比从 **60 万美元增长至 69 万美元**（**+15%**），
+增速超过北美（+8%）和 EMEA（+9.4%）。按当前增速，亚太将在 2026 年第四季度
+突破每季度 100 万美元，并将在更早之前就超越 EMEA 的*增长贡献*。
+</Callout>
+
+## 月度经常性收入
+
+在过去一年中，MRR 逐月攀升，从 **118 万美元增至 164 万美元**——
+增长了 **38.9%**。第一季度的三个月（1 月至 3 月）合计带来 464 万美元经常性收入；
+第一季度剩余约 18 万美元营收来自一次性的客户导入与服务。
+
+<Chart
+  type="line"
+  title="月度经常性收入（千美元）"
+  caption="过去 12 个月，2025 年 5 月 → 2026 年 4 月。"
+  height={300}
+  data={{
+    labels: [
+      "5月", "6月", "7月", "8月", "9月", "10月",
+      "11月", "12月", "1月", "2月", "3月", "4月"
+    ],
+    datasets: [
+      { label: "MRR", data: [1180, 1215, 1260, 1305, 1340, 1385, 1420, 1460, 1505, 1545, 1590, 1640] },
+    ],
+  }}
+/>
+
+## 各产品线营收
+
+核心的**平台**仍是引擎，占第一季度营收的 55%，但**分析**已经凭借 118 万美元
+真正成长为有分量的第二增长曲线。
+
+<Chart
+  type="doughnut"
+  title="2026 年第一季度各产品线营收（千美元）"
+  caption="合计 482 万美元——即第一季度总额。"
+  height={300}
+  data={{
+    labels: ["平台", "分析", "集成", "支持与服务"],
+    datasets: [
+      { label: "Q1 营收", data: [2650, 1180, 810, 180] },
+    ],
+  }}
+/>
+
+## 重点客户
+
+按 MRR 排名的 10 大客户。它们合计贡献 **47.8 万美元/月**——约占总 MRR 的
+**29%**——因此集中度风险值得关注。
+
+<DataTable
+  searchable
+  pageSize={10}
+  caption="按月度经常性收入排名的前 10 大客户。"
+  columns={["name", "region", "plan", "mrr", "status"]}
+  data={[
+    { name: "Northwind Logistics", region: "北美", plan: "企业版", mrr: 94500, status: "扩张中" },
+    { name: "Helvetia Financial", region: "EMEA", plan: "企业版", mrr: 71200, status: "活跃" },
+    { name: "Meridian Health", region: "北美", plan: "企业版", mrr: 63800, status: "续约中" },
+    { name: "Sakura Robotics", region: "亚太", plan: "商业版", mrr: 52400, status: "扩张中" },
+    { name: "Andes Telecom", region: "拉丁美洲", plan: "商业版", mrr: 41900, status: "活跃" },
+    { name: "Cinder & Co", region: "北美", plan: "商业版", mrr: 33600, status: "有风险" },
+    { name: "Baltic Freight", region: "EMEA", plan: "成长版", mrr: 28700, status: "活跃" },
+    { name: "Lumen Retail", region: "北美", plan: "成长版", mrr: 24300, status: "有风险" },
+    { name: "Coral Pay", region: "亚太", plan: "成长版", mrr: 19200, status: "扩张中" },
+    { name: "Vertex Studios", region: "EMEA", plan: "入门版", mrr: 18100, status: "活跃" },
+  ]}
+/>
+
+<Callout type="warning" title="前十大客户中有两家被标记为有风险">
+**Cinder & Co**（3.36 万美元）与 **Lumen Retail**（2.43 万美元）合计代表
+**5.79 万美元/月**的风险 MRR——约占客户盘子的 **3.5%**。两家都在第二季度续约，
+因此现在就要优先安排季度业务回顾（QBR）。剔除这两家后，总流失率将降至 **1.4%** 左右。
+</Callout>
+
+### 季度清单
+
+- [x] 结账并对账地区与产品线总额
+- [x] 确认 MRR 桥接（新增 + 扩张 − 收缩 − 流失）
+- [ ] 为两家有风险客户安排 QBR
+- [ ] 锁定亚太招聘计划以维持环比 +15% 的增长
+- [ ] 为董事会材料起草 2026 年第二季度预测

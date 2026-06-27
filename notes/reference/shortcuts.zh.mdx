@@ -1,0 +1,106 @@
+---
+title: 键盘快捷键
+description: 一份按用途分组的编辑器与应用键盘快捷键参考示例。
+tags: [参考]
+date: "2026-06-27"
+icon: ⌨️
+order: 30
+---
+
+一份按用途分组的键盘快捷键速查表：移动光标、修改文本、调整视图。在养成肌肉记忆的过程中，把它开在侧边栏里随时查看。
+
+<Callout type="note" title="这些只是示例">
+下面的快捷键绑定是**示意性的默认值**，旨在代表一款典型桌面编辑器的常见配置。你实际使用的应用可能有所不同——请务必对照应用的命令面板或设置确认。在 macOS 上，除非另有说明，请把 <Kbd>Ctrl</Kbd> 读作 <Kbd>⌘</Kbd>，把 <Kbd>Alt</Kbd> 读作 <Kbd>⌥</Kbd>。
+</Callout>
+
+## 导航
+
+在文件、符号和历史记录间穿梭，无需碰鼠标。
+
+| 快捷键 | 操作 |
+| --- | --- |
+| <Kbd>Ctrl</Kbd> + <Kbd>K</Kbd> | 打开搜索 / 命令面板 |
+| <Kbd>Ctrl</Kbd> + <Kbd>P</Kbd> | 按名称快速打开文件 |
+| <Kbd>Ctrl</Kbd> + <Kbd>G</Kbd> | 跳转到指定行号 |
+| <Kbd>Ctrl</Kbd> + <Kbd>T</Kbd> | 在整个工作区中跳转到某个符号 |
+| <Kbd>Ctrl</Kbd> + <Kbd>Shift</Kbd> + <Kbd>O</Kbd> | 在当前文件中跳转到某个符号 |
+| <Kbd>F12</Kbd> | 跳转到定义 |
+| <Kbd>Alt</Kbd> + <Kbd>←</Kbd> | 后退 |
+| <Kbd>Alt</Kbd> + <Kbd>→</Kbd> | 前进 |
+| <Kbd>Ctrl</Kbd> + <Kbd>Tab</Kbd> | 在已打开的编辑器之间循环切换 |
+
+<Callout type="tip" title="用组合键，别死记硬背">
+几乎每一个导航命令都藏在 <Kbd>Ctrl</Kbd> + <Kbd>K</Kbd> 之后。如果你只想学一个快捷键，那就学命令面板——它会用可搜索的名称把其余命令都呈现出来。
+</Callout>
+
+## 编辑
+
+这些日常文本操作能最快收回你的学习成本。
+
+| 快捷键 | 操作 |
+| --- | --- |
+| <Kbd>Ctrl</Kbd> + <Kbd>X</Kbd> | 剪切当前行（未选中任何内容时） |
+| <Kbd>Ctrl</Kbd> + <Kbd>C</Kbd> | 复制当前行（未选中任何内容时） |
+| <Kbd>Ctrl</Kbd> + <Kbd>/</Kbd> | 切换行注释 |
+| <Kbd>Alt</Kbd> + <Kbd>↑</Kbd> | 上移一行 |
+| <Kbd>Alt</Kbd> + <Kbd>↓</Kbd> | 下移一行 |
+| <Kbd>Shift</Kbd> + <Kbd>Alt</Kbd> + <Kbd>↓</Kbd> | 向下复制一行 |
+| <Kbd>Ctrl</Kbd> + <Kbd>D</Kbd> | 选中该单词的下一处出现 |
+| <Kbd>Ctrl</Kbd> + <Kbd>Shift</Kbd> + <Kbd>L</Kbd> | 选中所有出现 |
+| <Kbd>Ctrl</Kbd> + <Kbd>Space</Kbd> | 触发自动补全 |
+| <Kbd>Ctrl</Kbd> + <Kbd>Z</Kbd> | 撤销 |
+| <Kbd>Ctrl</Kbd> + <Kbd>Shift</Kbd> + <Kbd>Z</Kbd> | 重做 |
+
+一个常用的多光标操作流程：把光标放在某个变量上，连按几次 <Kbd>Ctrl</Kbd> + <Kbd>D</Kbd> 抓取后续的匹配项，然后一次性为它们全部输入新名称。
+
+```ts
+// 选中 `count`，按两次 Ctrl+D，一次性把所有地方重命名为 `total`
+let count = 0;
+count += items.length;
+return count;
+```
+
+<Callout type="warning" title="留意你的光标">
+多光标编辑会把你的按键同时应用到每一个光标上。在切换到别处之前，先按 <Kbd>Esc</Kbd> 折叠回单个光标，否则你可能会把内容输入到并不想输入的地方。
+</Callout>
+
+## 视图
+
+重塑工作区——面板、分屏、缩放与聚焦。
+
+| 快捷键 | 操作 |
+| --- | --- |
+| <Kbd>Ctrl</Kbd> + <Kbd>B</Kbd> | 切换侧边栏 |
+| <Kbd>Ctrl</Kbd> + <Kbd>`</Kbd> | 切换集成终端 |
+| <Kbd>Ctrl</Kbd> + <Kbd>\\</Kbd> | 拆分编辑器 |
+| <Kbd>Ctrl</Kbd> + <Kbd>1</Kbd> | 聚焦第一个编辑器组 |
+| <Kbd>Ctrl</Kbd> + <Kbd>2</Kbd> | 聚焦第二个编辑器组 |
+| <Kbd>Ctrl</Kbd> + <Kbd>+</Kbd> | 放大 |
+| <Kbd>Ctrl</Kbd> + <Kbd>-</Kbd> | 缩小 |
+| <Kbd>Ctrl</Kbd> + <Kbd>K</Kbd> <Kbd>Z</Kbd> | 进入禅模式（无干扰模式） |
+| <Kbd>F11</Kbd> | 切换全屏 |
+
+最后一行是一个**组合键**（chord）：按下 <Kbd>Ctrl</Kbd> + <Kbd>K</Kbd>，松开，然后再按 <Kbd>Z</Kbd>。组合键让一个前缀就能展开出一整族命令，而不必耗尽所有单键组合。
+
+## 学习顺序
+
+你不必一口气把这些全部消化。一个合理的进阶路径是：
+
+<Steps>
+  <Step title="先以命令面板为锚点">
+    先把 <Kbd>Ctrl</Kbd> + <Kbd>K</Kbd> 记牢。其余一切都能通过它发现，所以在你还没学会某个命令前，也永远不用专门去查。
+  </Step>
+  <Step title="加入高频编辑操作">
+    移动行、复制行和切换注释每天会触发几十次。大约一周内，它们就会从刻意操作变成下意识动作。
+  </Step>
+  <Step title="叠加导航操作">
+    一旦编辑变成反射动作，跳转到定义和前进/后退就能让你以思维的速度跨文件阅读。
+  </Step>
+  <Step title="最后收尾视图管理">
+    分屏、面板和禅模式属于锦上添花的舒适提升——等其余操作都已得心应手时，最后再学它们。
+  </Step>
+</Steps>
+
+<Callout type="info" title="把它们变成你自己的">
+把这份清单当作起点，而非金科玉律。凡是和你手感冲突的就重新绑定，从不使用的快捷键就删掉，好让真正重要的那些更容易记住。
+</Callout>

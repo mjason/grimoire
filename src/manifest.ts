@@ -38,16 +38,31 @@ function importSpecifier(absPath: string): string {
   return rel;
 }
 
-/** Derive the URL slug + category segments from a note's path under notes/. */
-function noteIdentity(absPath: string): { id: string; segments: string[] } {
+/** Derive the base slug + category segments + language from a note's path. */
+function noteIdentity(
+  absPath: string,
+  locales: string[],
+): { id: string; segments: string[]; lang: string | null } {
   const rel = relative(NOTES_DIR, absPath).split(sep).join("/");
   const withoutExt = rel.replace(/\.mdx$/, "");
   const parts = withoutExt.split("/");
-  const fileSlug = parts.pop()!;
-  // An `index.mdx` represents its parent folder.
+  let fileSlug = parts.pop()!;
   const segments = parts;
+
+  // Detect a language suffix: `getting-started.zh` -> slug "getting-started", lang "zh".
+  let lang: string | null = null;
+  const dot = fileSlug.lastIndexOf(".");
+  if (dot > 0) {
+    const suffix = fileSlug.slice(dot + 1);
+    if (locales.includes(suffix)) {
+      lang = suffix;
+      fileSlug = fileSlug.slice(0, dot);
+    }
+  }
+
+  // An `index.mdx` represents its parent folder.
   const id = fileSlug === "index" ? segments.join("/") : [...segments, fileSlug].join("/");
-  return { id, segments };
+  return { id, segments, lang };
 }
 
 function toPascalCase(name: string): string {
@@ -65,7 +80,7 @@ function toPascalCase(name: string): string {
  * imports every note and user component so the bundler can tree-shake and
  * embed them into a single binary.
  */
-export async function generateManifestSource(): Promise<string> {
+export async function generateManifestSource(locales: string[] = []): Promise<string> {
   const noteFiles = (await walk(NOTES_DIR, (n) => n.endsWith(".mdx"))).sort();
   const componentFiles = (
     await walk(COMPONENTS_DIR, (n) => /\.[tj]sx?$/.test(n) && !n.startsWith("index."))
@@ -85,10 +100,11 @@ export async function generateManifestSource(): Promise<string> {
   lines.push("");
 
   const noteEntries = noteFiles.map((file, i) => {
-    const { id, segments } = noteIdentity(file);
+    const { id, segments, lang } = noteIdentity(file, locales);
     return `  {
     id: ${JSON.stringify(id)},
     segments: ${JSON.stringify(segments)},
+    lang: ${JSON.stringify(lang)},
     module: note${i},
   }`;
   });
@@ -124,10 +140,12 @@ export async function generateManifestSource(): Promise<string> {
   return lines.join("\n") + "\n";
 }
 
-export async function writeManifest(): Promise<{ notes: number; components: number }> {
+export async function writeManifest(
+  locales: string[] = [],
+): Promise<{ notes: number; components: number }> {
   const { mkdir, writeFile } = await import("node:fs/promises");
   await mkdir(GENERATED_DIR, { recursive: true });
-  const source = await generateManifestSource();
+  const source = await generateManifestSource(locales);
   await writeFile(join(GENERATED_DIR, "manifest.ts"), source, "utf8");
 
   const noteCount = (await walk(NOTES_DIR, (n) => n.endsWith(".mdx"))).length;

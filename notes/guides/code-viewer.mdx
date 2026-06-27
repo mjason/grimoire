@@ -1,0 +1,82 @@
+---
+title: Code Viewer
+description: Embed code with filenames, line numbers and highlighted lines.
+tags: [guide, code]
+date: "2026-06-27"
+icon: 💻
+order: 3
+---
+
+Every fenced code block in a note is rendered by the **code viewer** — syntax
+highlighted at build time (zero runtime cost), with a copy button on hover. Add
+metadata after the language to unlock filenames, line numbers and highlights.
+
+## The basics
+
+A plain block just needs a language for highlighting:
+
+```ts
+type Note = { title: string; tags: string[] };
+const note: Note = { title: "Hello", tags: ["intro"] };
+```
+
+## Filenames
+
+Add `title="..."` to show a filename header with a language badge:
+
+```ts title="src/server.ts"
+import { serve } from "bun";
+
+serve({
+  port: 4321,
+  fetch: (req) => new Response("📓 Grimoire"),
+});
+```
+
+## Line numbers + highlighted lines
+
+Use `showLineNumbers` for a gutter, and `{2,4-6}` to call out specific lines:
+
+```python title="attention.py" showLineNumbers {6-8}
+import numpy as np
+
+def softmax(x):
+    e = np.exp(x - x.max(axis=-1, keepdims=True))
+    return e / e.sum(axis=-1, keepdims=True)
+
+def attention(q, k, v):
+    scores = q @ k.T / np.sqrt(q.shape[-1])
+    return softmax(scores) @ v
+```
+
+## Tabs for multiple files
+
+Combine the code viewer with `<Tabs>` to group related files:
+
+<Tabs>
+  <Tab label="bun">
+```bash
+bun install
+bun run compile
+```
+  </Tab>
+  <Tab label="config">
+```ts title="config.ts"
+export default { title: "My Grimoire" };
+```
+  </Tab>
+</Tabs>
+
+## Cheat sheet
+
+| Meta | Effect |
+|------|--------|
+| ` ```ts ` | Syntax highlight + copy button |
+| `title="file.ts"` | Filename header + language badge |
+| `showLineNumbers` | Line-number gutter |
+| `{2,4-6}` | Highlight lines 2 and 4–6 |
+
+<Callout type="tip">
+Long blocks collapse automatically with a **Show more** control, so a big file
+never dominates the page.
+</Callout>

@@ -4,6 +4,7 @@ import matter from "gray-matter";
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
 import rehypeHighlight from "rehype-highlight";
+import { remarkCodeMeta, rehypeCodeLines } from "./code-plugins";
 
 /**
  * A Bun bundler plugin that compiles `.mdx` files into Preact components.
@@ -25,10 +26,12 @@ export const mdxPlugin: BunPlugin = {
       const compiled = await compile(content, {
         jsxImportSource: "preact",
         providerImportSource: "@mdx-js/preact",
-        remarkPlugins: [remarkGfm],
+        remarkPlugins: [remarkGfm, remarkCodeMeta],
         rehypePlugins: [
           rehypeSlug,
           [rehypeHighlight, { detect: true, ignoreMissing: true }],
+          // After highlighting: split into per-line spans for numbers + line highlight.
+          rehypeCodeLines,
         ],
         development: false,
       });

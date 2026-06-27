@@ -5,15 +5,24 @@ import {
   buildTree,
   collectTags,
   formatDate,
+  notesForLocale,
   resolveNotes,
   searchNotes,
   type TreeNode,
 } from "./lib/notes";
 import { hrefFor, noteHref, useRoute, type Route } from "./lib/router";
 import { ThemeToggle } from "./components/ThemeToggle";
+import { LanguageSwitcher } from "./components/LanguageSwitcher";
+import { useLocale } from "./i18n";
 
 export function App({ config }: { config: GrimoireConfig }) {
-  const notes = useMemo(() => resolveNotes(), []);
+  const { locale, defaultLocale } = useLocale();
+  const allNotes = useMemo(() => resolveNotes(defaultLocale), [defaultLocale]);
+  // One note per slug, chosen for the active language (with default fallback).
+  const notes = useMemo(
+    () => notesForLocale(allNotes, locale, defaultLocale),
+    [allNotes, locale, defaultLocale],
+  );
   const tree = useMemo(() => buildTree(notes, config.categoryOrder ?? []), [notes, config]);
   const tags = useMemo(() => collectTags(notes), [notes]);
   const byId = useMemo(() => new Map(notes.map((n) => [n.id, n])), [notes]);
@@ -29,6 +38,7 @@ export function App({ config }: { config: GrimoireConfig }) {
           <span>{config.title}</span>
         </a>
         <div class="flex items-center gap-1">
+          <LanguageSwitcher />
           <ThemeToggle />
           <button
             onClick={() => setNavOpen((o) => !o)}
@@ -80,6 +90,7 @@ function Sidebar(props: {
   onNavigate: () => void;
 }) {
   const { config, tree, tags, notes, route, open, onNavigate } = props;
+  const { t } = useLocale();
   const [query, setQuery] = useState("");
   const results = useMemo(() => searchNotes(notes, query), [notes, query]);
 
@@ -94,7 +105,8 @@ function Sidebar(props: {
           <span class="text-2xl">📓</span>
           <span class="leading-tight">{config.title}</span>
         </a>
-        <span class="hidden lg:block">
+        <span class="hidden items-center lg:flex">
+          <LanguageSwitcher />
           <ThemeToggle />
         </span>
       </div>
@@ -109,7 +121,7 @@ function Sidebar(props: {
             type="search"
             value={query}
             onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
-            placeholder="Search notes…"
+            placeholder={t("search.placeholder")}
             class="w-full rounded-lg border border-neutral-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:accent-ring dark:border-neutral-700 dark:bg-neutral-800"
           />
         </div>
@@ -124,7 +136,7 @@ function Sidebar(props: {
             {tags.length > 0 && (
               <div class="mt-6">
                 <div class="px-2 pb-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-400">
-                  Tags
+                  {t("nav.tags")}
                 </div>
                 <div class="flex flex-wrap gap-1.5 px-2">
                   {tags.map((t) => (
@@ -231,8 +243,9 @@ function SearchList({
   route: Route;
   onNavigate: () => void;
 }) {
+  const { t } = useLocale();
   if (results.length === 0) {
-    return <p class="px-2 py-6 text-center text-neutral-400">No notes found.</p>;
+    return <p class="px-2 py-6 text-center text-neutral-400">{t("search.none")}</p>;
   }
   return <NoteLinks notes={results} route={route} onNavigate={onNavigate} />;
 }
@@ -298,6 +311,7 @@ function NoteView({ note }: { note: NoteMeta }) {
 }
 
 function Home({ notes }: { notes: NoteMeta[] }) {
+  const { t } = useLocale();
   const recent = [...notes]
     .filter((n) => n.date)
     .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""))
@@ -307,11 +321,10 @@ function Home({ notes }: { notes: NoteMeta[] }) {
   return (
     <div class="animate-fade">
       <h1 class="text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
-        Welcome 👋
+        {t("home.welcome")} 👋
       </h1>
       <p class="mt-3 text-lg text-neutral-500 dark:text-neutral-400">
-        {notes.length} note{notes.length === 1 ? "" : "s"} in this grimoire. Browse the sidebar, search,
-        or jump into a recent one below.
+        {t("home.subtitle", { count: notes.length })}
       </p>
       <div class="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {list.map((n) => (
@@ -344,6 +357,7 @@ function Home({ notes }: { notes: NoteMeta[] }) {
 }
 
 function TagView({ tag, notes }: { tag: string; notes: NoteMeta[] }) {
+  const { t } = useLocale();
   const matches = notes.filter((n) => n.tags.includes(tag));
   return (
     <div class="animate-fade">
@@ -352,7 +366,7 @@ function TagView({ tag, notes }: { tag: string; notes: NoteMeta[] }) {
         {tag}
       </h1>
       <p class="mt-2 text-neutral-500 dark:text-neutral-400">
-        {matches.length} note{matches.length === 1 ? "" : "s"} tagged with “{tag}”.
+        {t("tag.count", { count: matches.length, tag })}
       </p>
       <ul class="mt-6 space-y-2">
         {matches.map((n) => (
@@ -375,9 +389,10 @@ function TagView({ tag, notes }: { tag: string; notes: NoteMeta[] }) {
 }
 
 function TagsIndex({ tags }: { tags: { tag: string; count: number }[] }) {
+  const { t } = useLocale();
   return (
     <div class="animate-fade">
-      <h1 class="text-3xl font-bold tracking-tight">All tags</h1>
+      <h1 class="text-3xl font-bold tracking-tight">{t("tags.all")}</h1>
       <div class="mt-6 flex flex-wrap gap-2">
         {tags.map((t) => (
           <a
@@ -394,15 +409,16 @@ function TagsIndex({ tags }: { tags: { tag: string; count: number }[] }) {
 }
 
 function NotFound({ id }: { id: string }) {
+  const { t } = useLocale();
   return (
     <div class="animate-fade py-16 text-center">
       <div class="text-6xl">🔍</div>
-      <h1 class="mt-4 text-2xl font-bold">Note not found</h1>
+      <h1 class="mt-4 text-2xl font-bold">{t("note.notFound.title")}</h1>
       <p class="mt-2 text-neutral-500">
-        Nothing lives at <code class="rounded bg-neutral-100 px-1 dark:bg-neutral-800">{id}</code>.
+        {t("note.notFound.body", { id })}
       </p>
       <a href="#/" class="accent-text mt-4 inline-block font-medium">
-        ← Back home
+        {t("note.back")}
       </a>
     </div>
   );

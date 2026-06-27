@@ -76,6 +76,36 @@ so they get syntax-highlighted at build time.
 Do **not** start a note with an `# H1` — the title from frontmatter is rendered for
 you. Begin with a short intro paragraph, then use `##`/`###`.
 
+### Code viewer metadata
+
+Add metadata after the language to enrich a code block:
+
+````md
+```ts title="src/server.ts" showLineNumbers {2,4-6}
+…code…
+```
+````
+
+- `title="file.ts"` → filename header + language badge
+- `showLineNumbers` → line-number gutter
+- `{2,4-6}` → highlight lines 2 and 4–6
+
+## Translations
+
+To add a Chinese (or other-locale) version of a note, create a sibling file with a
+language suffix matching a `config.ts` locale code:
+
+```
+notes/guides/getting-started.mdx       # English (default)
+notes/guides/getting-started.zh.mdx    # 中文 — same base slug
+```
+
+Both share the slug `guides/getting-started`, so the language switcher swaps between
+them in place. When translating: translate prose, headings, frontmatter
+`title`/`description`/`tags`, and human-readable prop values (chart labels, callout
+titles…), but **keep component/prop names, data shapes, numbers and code-fence meta
+unchanged**. Don't add a `lang` field — the filename suffix is authoritative.
+
 ## Adding a component
 
 Create `components/MyThing.tsx`. It's a **Preact** component (not React):

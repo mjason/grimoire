@@ -142,6 +142,38 @@ body {
   font-weight: 700;
 }
 
+/* --- Code viewer: per-line rendering ------------------------------------ */
+.code-line {
+  display: block;
+  min-height: 1.5em;
+}
+.code-line[data-hl] {
+  background: var(--accent-soft);
+  box-shadow: inset 2px 0 0 var(--accent);
+  margin: 0 -1rem;
+  padding: 0 1rem;
+}
+code.with-line-numbers {
+  counter-reset: grimoire-line;
+}
+code.with-line-numbers .code-line {
+  padding-left: 0.75rem;
+}
+code.with-line-numbers .code-line[data-hl] {
+  padding-left: 1.75rem;
+}
+code.with-line-numbers .code-line::before {
+  counter-increment: grimoire-line;
+  content: counter(grimoire-line);
+  display: inline-block;
+  width: 1.75rem;
+  margin-left: -2.5rem;
+  margin-right: 0.75rem;
+  text-align: right;
+  color: color-mix(in srgb, currentColor 35%, transparent);
+  user-select: none;
+}
+
 /* Smooth entrance for routed content. */
 @keyframes grimoire-fade {
   from {

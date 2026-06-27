@@ -1,0 +1,227 @@
+---
+title: 组件画廊
+description: 一个展示 Grimoire 所有内置组件与自定义组件的实时陈列页。
+tags: [指南, 参考]
+date: "2026-06-27"
+icon: 🧩
+order: 2
+---
+
+这是 Grimoire 的视觉测试页面。下面每个内置组件和自定义组件都各自有一个标题，
+并配有简短说明和一个实时示例——如果这里有任何东西渲染异常，就说明构建出了问题。
+
+## Callout
+
+用于强调的方框旁注。每种 `type` 一个，每个都可以选用 `title`。
+
+<Callout type="note">
+一条普通的**说明**——不适合放进正文主线的中性补充信息。
+</Callout>
+
+<Callout type="info" title="提个醒">
+信息性细节。内部支持 Markdown：`行内代码`、[链接](https://example.com) 以及**加粗**。
+</Callout>
+
+<Callout type="tip" title="专业提示">
+优先使用带语言标注的围栏代码块，这样语法高亮才会生效。
+</Callout>
+
+<Callout type="success" title="已发布">
+1.4.0 版本通过了全部 312 项检查，并在 41 秒内完成部署。
+</Callout>
+
+<Callout type="warning" title="小心">
+在开发服务器运行时编辑 `config.toml` 会触发一次完整重载。
+</Callout>
+
+<Callout type="danger" title="破坏性操作">
+`grimoire purge --all` 会删除已渲染的缓存，且无法撤销。
+</Callout>
+
+## Chart — 折线图
+
+时间序列与趋势。多个数据集叠加在共享的 `labels` 上。
+
+<Chart
+  type="line"
+  title="每周活跃读者"
+  caption="滚动 8 周窗口，两个分组"
+  height={280}
+  data={{
+    labels: ["第1周", "第2周", "第3周", "第4周", "第5周", "第6周", "第7周", "第8周"],
+    datasets: [
+      { label: "回访", data: [820, 932, 901, 1034, 1190, 1230, 1275, 1402] },
+      { label: "新增", data: [220, 281, 240, 318, 295, 360, 401, 388] },
+    ],
+  }}
+/>
+
+## Chart — 环形图
+
+部分与整体的占比拆解。单个数据集，每个标签对应一块扇形。
+
+<Chart
+  type="doughnut"
+  title="按来源划分的流量"
+  caption="最近 30 天"
+  height={280}
+  data={{
+    labels: ["自然搜索", "直接访问", "引荐", "社交", "邮件"],
+    datasets: [
+      { label: "会话数", data: [4820, 2110, 1340, 980, 640] },
+    ],
+  }}
+/>
+
+## DataTable
+
+可搜索、可分页的表格。省略时会从键名推断列；这里我们显式固定了列的顺序。
+
+<DataTable
+  searchable
+  pageSize={5}
+  caption="各区域服务延迟（p95，毫秒）"
+  columns={["region", "service", "p95", "errorRate", "uptime"]}
+  data={[
+    { region: "us-east-1", service: "api", p95: 142, errorRate: "0.04%", uptime: "99.98%" },
+    { region: "us-west-2", service: "api", p95: 167, errorRate: "0.07%", uptime: "99.96%" },
+    { region: "eu-west-1", service: "api", p95: 189, errorRate: "0.05%", uptime: "99.97%" },
+    { region: "eu-central-1", service: "render", p95: 211, errorRate: "0.11%", uptime: "99.93%" },
+    { region: "ap-south-1", service: "render", p95: 254, errorRate: "0.14%", uptime: "99.90%" },
+    { region: "ap-northeast-1", service: "search", p95: 198, errorRate: "0.06%", uptime: "99.95%" },
+    { region: "sa-east-1", service: "search", p95: 276, errorRate: "0.18%", uptime: "99.88%" },
+    { region: "ca-central-1", service: "auth", p95: 121, errorRate: "0.02%", uptime: "99.99%" },
+    { region: "af-south-1", service: "auth", p95: 233, errorRate: "0.09%", uptime: "99.92%" },
+    { region: "me-south-1", service: "media", p95: 245, errorRate: "0.12%", uptime: "99.91%" },
+  ]}
+/>
+
+## Tabs
+
+把可替换的视图或针对不同平台的说明归入各自的标签下。
+
+<Tabs>
+  <Tab label="npm">
+```bash
+npm install grimoire
+npx grimoire build ./notes
+```
+  </Tab>
+  <Tab label="pnpm">
+```bash
+pnpm add grimoire
+pnpm grimoire build ./notes
+```
+  </Tab>
+  <Tab label="Cargo">
+```bash
+cargo install grimoire-cli
+grimoire build ./notes
+```
+  </Tab>
+</Tabs>
+
+## Steps
+
+有序、带编号的操作步骤。每个 `Step` 都接受一个 `title`。
+
+<Steps>
+  <Step title="搭建骨架">
+运行 `grimoire init my-grimoire` 来创建目录结构和一个示例笔记。
+  </Step>
+  <Step title="撰写">
+在 `notes/` 下添加 `.mdx` 文件。Frontmatter 决定标题、标签和顺序。
+  </Step>
+  <Step title="预览">
+`grimoire dev` 会启动应用并提供热重载，地址为 `localhost:4321`。
+  </Step>
+  <Step title="发布">
+`grimoire build` 会生成一个独立的静态二进制文件，你可以把它放到任何主机上。
+  </Step>
+</Steps>
+
+## CardGrid
+
+一个由可点击卡片组成的响应式网格。把 `columns` 设为 2、3 或 4。
+
+<CardGrid columns={3}>
+  <Card title="快速上手" icon="🚀" note="guides/getting-started">
+快速导览——五分钟内写出你的第一篇笔记。
+  </Card>
+  <Card title="主题定制" icon="🎨">
+替换调色板、字体以及语法高亮方案。
+  </Card>
+  <Card title="部署" icon="📦">
+静态产物，零运行时——把它发布到任意 CDN。
+  </Card>
+  <Card title="搜索" icon="🔍">
+在编译期构建的客户端全文索引。
+  </Card>
+  <Card title="插件" icon="🔌">
+只需把文件放进 `components/` 即可注册自定义组件。
+  </Card>
+  <Card title="API" icon="⚙️">
+面向 CI 流水线的编程式构建钩子。
+  </Card>
+</CardGrid>
+
+## Badge
+
+小巧的行内标签。`color` 接受任意十六进制颜色值。
+
+<Badge color="#7c3aed">稳定版</Badge> <Badge color="#0ea5e9">测试版</Badge> <Badge color="#f59e0b">实验性</Badge> <Badge color="#ef4444">已弃用</Badge> <Badge color="#10b981">全新</Badge>
+
+## Kbd
+
+渲染键盘按键。组合几个键就成了一个快捷键。
+
+用 <Kbd>Ctrl</Kbd> + <Kbd>K</Kbd> 打开命令面板，或用 <Kbd>Cmd</Kbd> + <Kbd>S</Kbd> 保存。
+
+## StatCard
+
+一个单一的核心指标，可选地附带变化量和趋势箭头。
+
+<CardGrid columns={3}>
+  <StatCard label="活跃笔记" value="128" delta="+8%" trend="up" />
+  <StatCard label="平均构建耗时" value="0.9s" delta="-12%" trend="down" />
+  <StatCard label="未关闭的 issue" value="14" delta="0" trend="flat" />
+</CardGrid>
+
+## Timeline
+
+一列纵向排列的事件序列。每个 `TimelineItem` 都接受 `title`、`date` 和 `icon`。
+
+<Timeline>
+  <TimelineItem title="项目启动" date="2026-01" icon="✨">
+首次提交，MDX 流水线接通，单篇演示笔记成功渲染。
+  </TimelineItem>
+  <TimelineItem title="公测" date="2026-03" icon="🚧">
+搜索、主题定制和组件库相继上线。40 位早期用户。
+  </TimelineItem>
+  <TimelineItem title="1.0 发布" date="2026-06" icon="🎉">
+稳定的 API、静态二进制导出，以及完整的文档站点。
+  </TimelineItem>
+</Timeline>
+
+## ProgressBar
+
+朝某个 `max` 推进的带标签进度条。`color` 可选。
+
+<ProgressBar label="文档覆盖率" value={72} max={100} color="#7c3aed" />
+<ProgressBar label="已迁移的测试套件" value={310} max={420} color="#10b981" />
+
+## Quiz
+
+一个行内知识小测验，作答后会揭示解析。
+
+<Quiz
+  question="哪个目录能让自定义组件在所有笔记中全局可用？"
+  options={["pages/", "components/", "public/", "layouts/"]}
+  answer={1}
+  explanation="components/ 中的任何东西都会被自动注册，因此你无需 import 就能在任意笔记中使用它。"
+/>
+
+---
+
+这就是全部组件了。升级渲染器之后，可以把本页当作一次回归检查——滚动浏览一遍，
+每个组件都应当显示正常。

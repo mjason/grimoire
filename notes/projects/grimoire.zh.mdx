@@ -1,0 +1,133 @@
+---
+title: 关于这本魔典
+description: 元笔记——这套 MDX 笔记系统是如何构建、发布的，又将走向何方。
+tags: [元信息]
+date: "2026-06-27"
+icon: 📓
+order: 0
+---
+
+你正在阅读的这篇笔记，正是由它所描述的系统渲染出来的。**Grimoire** 把一个装满 MDX 文件的
+文件夹变成一个快速、可搜索的小应用——然后把整个应用连同运行时一起，折叠进一个独立的二进制文件，
+让你可以把它拷贝到任何机器上。
+
+## 核心主张
+
+写 Markdown。当散文不够用时，丢进一个组件——一个 `<Chart/>`、一个
+`<DataTable/>`、一个 `<Quiz/>`——无需导入，无需接线。构建过程会静态渲染每一篇
+笔记，打包好可交互的「孤岛」，再用 `bun build --compile` 把这一切压成一个
+可执行文件。无需安装 Node，无需在目标机器上 `npm i`，无需 Docker。只要 `./grimoire`。
+
+<CardGrid columns={2}>
+  <Card title="是 MDX，不只是 Markdown" icon="✍️">
+    GitHub 风味的 Markdown 再加上 JSX。想要从容时，用表格、任务列表和代码块；
+    想要锋芒时，用实时组件。
+  </Card>
+  <Card title="零导入组件" icon="🧩">
+    <code>components/</code> 中的一切都会自动注册到 MDX 作用域里。写一个
+    <code>.tsx</code> 文件，第二天早上就能直接用它的标签。
+  </Card>
+  <Card title="单一二进制" icon="📦">
+    <code>bun run compile</code> 会把资源、Preact 运行时和你的内容
+    嵌入一个约 50&nbsp;MB 的独立可执行文件。
+  </Card>
+  <Card title="孤岛式交互" icon="🏝️">
+    笔记会被预渲染成 HTML 以便瞬间呈现；图表和表格则按需注水。
+    首字节快，紧随其后便活了起来。
+  </Card>
+</CardGrid>
+
+## 它是怎么接起来的
+
+一篇笔记不过是一个文件。`gray-matter` 剥离 YAML frontmatter，`@mdx-js` 编译
+正文，`remark-gfm` + `rehype-slug` + `rehype-highlight` 处理表格、锚点和
+语法高亮。Preact 渲染节点树；Tailwind v4 为它上色；Chart.js 绘制
+图表。Bun 在构建时把这一切串联起来。
+
+```ts
+// 每篇笔记最终都会解析成这样的形状
+type Note = {
+  slug: string;          // "projects/grimoire"
+  frontmatter: Frontmatter;
+  Component: FunctionComponent; // 编译后的 MDX
+  headings: Heading[];   // 提取出来用于页内目录（TOC）
+};
+```
+
+## 构建历程
+
+这东西是怎么诞生的，按提交落地的先后顺序排列。
+
+<Timeline>
+  <TimelineItem title="脚手架与开发循环" date="2026-05" icon="🌱">
+    Bun 项目，Preact + Tailwind，一个 hash 路由和一个支持热重载的 `dev.ts`。当晚
+    第一篇笔记就渲染到了屏幕上。
+  </TimelineItem>
+  <TimelineItem title="MDX 流水线" date="2026-05" icon="⚙️">
+    把 `@mdx-js/preact` 与 `remark-gfm`、`rehype-slug` 和 `rehype-highlight` 接好。
+    frontmatter 由 `gray-matter` 解析，并以带类型的元数据形式暴露出来。
+  </TimelineItem>
+  <TimelineItem title="组件库" date="2026-06" icon="🧩">
+    搭好了核心套件——Callout、Chart、DataTable、Tabs、Steps、CardGrid——还有像
+    StatCard 和 ProgressBar 这样的自定义组件，全部从 `components/` 自动发现。
+  </TimelineItem>
+  <TimelineItem title="单二进制编译" date="2026-06" icon="📦">
+    用 `bun build --compile` 把静态 HTML、注水孤岛和资源打包进一个
+    可执行文件。拷到哪儿都能跑，开箱即用。
+  </TimelineItem>
+  <TimelineItem title="内容与打磨" date="2026-06" icon="✨">
+    主题令牌、深色模式、侧边栏排序、一份搜索索引——以及最初几篇真正的笔记，
+    包括这一篇。
+  </TimelineItem>
+</Timeline>
+
+## 路线图
+
+目前精力分布的情况。核心已经完成；其余部分正在追赶。
+
+<ProgressBar label="核心引擎——MDX、构建、编译" value={100} max={100} color="#10b981" />
+<ProgressBar label="文档——指南与参考" value={80} max={100} color="#7c3aed" />
+<ProgressBar label="主题——配色与布局预设" value={40} max={100} color="#f59e0b" />
+
+<Callout type="info" title="对核心而言「完成」意味着什么">
+核心在 `0.1` 版本已经功能冻结：笔记能编译，组件能注水，二进制能发布。
+新的工作都投入到文档和主题上，好让外在层面跟得上引擎的脚步。
+</Callout>
+
+## 构建一览
+
+来自本仓库一次干净的 `bun run compile` 的几个诚实数字。
+
+<DataTable
+  caption="在一台 M 系列笔记本上做干净构建测得"
+  data={[
+    { stage: "解析并编译 MDX", notes: 6, ms: 180 },
+    { stage: "静态渲染为 HTML", notes: 6, ms: 240 },
+    { stage: "打包注水孤岛", notes: 6, ms: 410 },
+    { stage: "编译单一二进制", notes: 6, ms: 2600 },
+  ]}
+  columns={["stage", "notes", "ms"]}
+/>
+
+## 继续阅读
+
+<CardGrid columns={2}>
+  <Card title="快速上手" icon="🚀" note="guides/getting-started">
+    五分钟导览——你的第一篇笔记、一张图表、一个表格、一个自定义组件。
+  </Card>
+  <Card title="写作指南" icon="✍️" note="guides/authoring">
+    frontmatter 字段、完整的组件约定，以及读起来顺眼的写法范式。
+  </Card>
+  <Card title="组件参考" icon="🧩" note="reference/components">
+    每一个内置和自定义组件，附带确切的 props 和可复制的示例。
+  </Card>
+  <Card title="主题定制" icon="🎨" note="guides/theming">
+    强调色配色、明暗令牌，以及在 `config.ts` 里给侧边栏排序。
+  </Card>
+</CardGrid>
+
+<Callout type="success" title="这不过是一堆文件">
+没有数据库，没有要照看的服务器，没有构建服务器。你的知识以纯粹的 MDX 形态活在
+git 里，并作为一个可以递给任何人的二进制发布。写一篇笔记，跑一下 `bun run compile`，
+你就拥有了一本能在几毫秒内启动的笔记本。
+</Callout>

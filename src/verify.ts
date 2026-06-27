@@ -4,6 +4,7 @@
 // skipped during string rendering, which is exactly what we want here.)
 import { mdxPlugin } from "./mdx-plugin";
 import { writeManifest } from "./manifest";
+import { CONFIG_FILE } from "./paths";
 
 Bun.plugin(mdxPlugin);
 
@@ -13,7 +14,14 @@ const DIM = "\x1b[2m";
 const RESET = "\x1b[0m";
 
 async function main() {
-  await writeManifest();
+  let locales: string[] = [];
+  try {
+    const cfg = (await import(CONFIG_FILE)).default;
+    locales = (cfg?.i18n?.locales ?? []).map((l: { code: string }) => l.code);
+  } catch {
+    /* no config / no i18n */
+  }
+  await writeManifest(locales);
 
   // Dynamic imports so they evaluate *after* the MDX plugin is registered.
   const { h } = await import("preact");

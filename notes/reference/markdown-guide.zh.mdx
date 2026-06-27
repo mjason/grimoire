@@ -1,0 +1,139 @@
+---
+title: Markdown 与 MDX 参考手册
+description: Grimoire 所能渲染的 Markdown 与 MDX 功能的密集速查表。
+tags: [参考]
+date: "2026-06-27"
+icon: 📐
+order: 0
+---
+
+Grimoire 的笔记采用 **MDX**：标准的 GitHub 风格 Markdown，外加内联的 JSX
+组件。本页是一份可供你直接复制的速查参考——下面的每个代码块都按其实际渲染的样子原样展示。
+
+## 标题
+
+使用 `#` 到 `######`。H1 保留给 frontmatter 中的 `title`，所以
+正文内容请从 `##` 开始。
+
+```md
+## 章节
+### 小节
+#### 细节
+```
+
+## 内联文本
+
+可以组合使用 **粗体**（`**bold**`）、*斜体*（`*italic*`）、***粗斜体***
+（`***both***`）、~~删除线~~（`~~strikethrough~~`）以及内联 `code`
+（`` `code` ``）。这类脚注式的强调可以在散文中干净地叠加使用。
+
+## 链接
+
+内部链接和外部链接使用相同的 `[text](url)` 语法：
+
+- 相对路径：[入门指南](../guides/getting-started.mdx)
+- 外部链接：[MDX 文档](https://mdxjs.com)——会打开上游官方文档
+- 自动链接：https://commonmark.org ——裸 URL 会自动变成链接
+
+## 列表
+
+无序列表用两个空格的缩进来嵌套；有序列表会自动重新编号。
+
+- 解析
+  - 词法分析
+  - 构建 AST
+- 渲染
+  - 将节点映射到组件
+
+1. 撰写笔记
+2. 保存文件
+3. 重新加载——热模块替换会自动识别改动
+
+## 任务列表
+
+GitHub 风格的复选框会渲染为真正可切换的开关：
+
+- [x] 定义 frontmatter 模式
+- [x] 接入语法高亮
+- [ ] 添加全文搜索
+- [ ] 导出为单个二进制文件
+
+## 引用块
+
+> “任何足够先进的笔记系统都与 wiki 无异。”
+>
+> 引用可以跨越多个段落，并包含 **格式**、`code` 以及
+> [链接](https://example.com)。
+
+## 代码块
+
+请始终为围栏代码块标注语言，这样高亮器才会生效。下面是
+三段可供对比的代码：
+
+```ts
+// TypeScript
+type Note = { title: string; tags: string[]; draft?: boolean };
+
+export function visible(notes: Note[]): Note[] {
+  return notes.filter((n) => !n.draft).sort((a, b) => a.title.localeCompare(b.title));
+}
+```
+
+```python
+# Python
+from dataclasses import dataclass
+
+@dataclass
+class Note:
+    title: str
+    tags: list[str]
+    draft: bool = False
+
+def visible(notes: list[Note]) -> list[Note]:
+    return sorted((n for n in notes if not n.draft), key=lambda n: n.title)
+```
+
+```bash
+# Bash
+find notes -name '*.mdx' -print0 \
+  | xargs -0 grep -L '^title:' \
+  | sed 's/^/missing title: /'
+```
+
+## 表格
+
+GFM 表格支持在分隔行中用 `:` 标记来设置每一列的对齐方式：
+
+| 组件        | 自闭合       | 常用 prop        | 说明                         |
+| :---------- | :----------: | :--------------- | ---------------------------: |
+| `Callout`   |      否      | `type`           | 包裹 markdown 子内容          |
+| `Chart`     |     是       | `data`           | 自动应用配色                  |
+| `DataTable` |     是       | `data`           | `searchable` + `pageSize`    |
+| `Badge`     |      否      | `color`          | 内联，十六进制颜色            |
+
+## 水平分割线
+
+单独成行的三个或更多短横线会画出一条分隔线：
+
+---
+
+## MDX 引入了组件
+
+除了 Markdown 之外，你还可以把 JSX 组件直接放进散文里。Prop 用
+单花括号表示表达式——`value={42}`——用双花括号表示对象
+字面量——`data={{ ... }}`。
+
+<Callout type="tip" title="组件是全局的">
+笔记中无需任何 `import` 语句。像 `<Callout/>` 和
+`<Badge/>` 这样的内置组件始终处于作用域内，而 `components/` 目录下的任何组件都会在构建时
+自动注册。
+</Callout>
+
+内联组件同样会随文本一起流动——例如一个状态标签
+<Badge color="#7c3aed">stable</Badge> 就嵌在句子内部，紧挨着一个
+<Badge color="#dc2626">deprecated</Badge> 标记，而不会打断这一行。
+
+<Callout type="warning" title="臆造的 prop 会让构建失败">
+请坚持使用文档中记载的 prop 名称。未知的组件或拼错的 prop
+会导致 MDX 编译失败，而不会优雅地降级处理。
+</Callout>

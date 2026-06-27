@@ -1,0 +1,79 @@
+---
+title: 代码查看器
+description: 嵌入带有文件名、行号和高亮行的代码。
+tags: [指南, 代码]
+date: "2026-06-27"
+icon: 💻
+order: 3
+---
+
+笔记中的每一个围栏代码块都由 **代码查看器** 渲染——在构建时完成语法高亮（运行时零开销），并在悬停时显示复制按钮。在语言标识后面添加元数据，即可启用文件名、行号和高亮功能。
+
+## 基础用法
+
+最简单的代码块只需要指定语言以进行高亮：
+
+```ts
+type Note = { title: string; tags: string[] };
+const note: Note = { title: "Hello", tags: ["intro"] };
+```
+
+## 文件名
+
+添加 `title="..."` 即可显示带有语言徽章的文件名标题栏：
+
+```ts title="src/server.ts"
+import { serve } from "bun";
+
+serve({
+  port: 4321,
+  fetch: (req) => new Response("📓 Grimoire"),
+});
+```
+
+## 行号 + 高亮行
+
+使用 `showLineNumbers` 显示行号边栏，使用 `{2,4-6}` 来突出显示特定行：
+
+```python title="attention.py" showLineNumbers {6-8}
+import numpy as np
+
+def softmax(x):
+    e = np.exp(x - x.max(axis=-1, keepdims=True))
+    return e / e.sum(axis=-1, keepdims=True)
+
+def attention(q, k, v):
+    scores = q @ k.T / np.sqrt(q.shape[-1])
+    return softmax(scores) @ v
+```
+
+## 用标签页展示多个文件
+
+将代码查看器与 `<Tabs>` 结合，可以把相关的文件归为一组：
+
+<Tabs>
+  <Tab label="bun">
+```bash
+bun install
+bun run compile
+```
+  </Tab>
+  <Tab label="config">
+```ts title="config.ts"
+export default { title: "My Grimoire" };
+```
+  </Tab>
+</Tabs>
+
+## 速查表
+
+| 元数据 | 效果 |
+|------|--------|
+| ` ```ts ` | 语法高亮 + 复制按钮 |
+| `title="file.ts"` | 文件名标题栏 + 语言徽章 |
+| `showLineNumbers` | 行号边栏 |
+| `{2,4-6}` | 高亮第 2 行和第 4–6 行 |
+
+<Callout type="tip">
+较长的代码块会自动折叠，并提供 **显示更多** 控件，因此一个大文件永远不会占满整个页面。
+</Callout>

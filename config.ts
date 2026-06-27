@@ -14,4 +14,12 @@ export default defineConfig({
   // Order the top-level folders in the sidebar; unlisted ones follow A→Z.
   categoryOrder: ["guides", "data", "reference"],
   footer: "Built with Grimoire · MDX + Bun",
+  // Multi-language: notes named `name.zh.mdx` are the Chinese variant of `name.mdx`.
+  i18n: {
+    defaultLocale: "en",
+    locales: [
+      { code: "en", label: "English" },
+      { code: "zh", label: "中文" },
+    ],
+  },
 });

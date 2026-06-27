@@ -1,6 +1,13 @@
 import { rawNotes } from "../generated/manifest";
 import type { NoteMeta } from "../../types";
 
+interface RawNote {
+  id: string;
+  segments: string[];
+  lang: string | null;
+  module: Record<string, any>;
+}
+
 /** Format a date string (ISO or YYYY-MM-DD) as e.g. "Jun 27, 2026" (UTC-safe). */
 export function formatDate(value?: string): string {
   if (!value) return "";
@@ -23,15 +30,16 @@ function humanize(slug: string): string {
     .join(" ");
 }
 
-/** Resolve the raw generated note list into fully-typed, sorted NoteMeta. */
-export function resolveNotes(): NoteMeta[] {
-  const notes = rawNotes.map((n): NoteMeta => {
-    const mod = n.module as Record<string, any>;
+/** Resolve the raw generated note list into fully-typed NoteMeta (all languages). */
+export function resolveNotes(defaultLocale = "en"): NoteMeta[] {
+  const notes = (rawNotes as RawNote[]).map((n): NoteMeta => {
+    const mod = n.module;
     const fm = (mod.frontmatter ?? {}) as Record<string, any>;
     const fallback = humanize(n.id.split("/").pop() || "untitled");
     return {
       id: n.id,
       segments: n.segments,
+      lang: n.lang ?? fm.lang ?? defaultLocale,
       title: fm.title ?? fallback,
       description: fm.description,
       tags: Array.isArray(fm.tags) ? fm.tags.map(String) : [],
@@ -43,6 +51,49 @@ export function resolveNotes(): NoteMeta[] {
     };
   });
   return notes.filter((n) => !n.draft);
+}
+
+/**
+ * For each base slug, pick the best note for the active locale:
+ * exact language match → default-locale fallback → any. This keeps untranslated
+ * notes visible (in the default language) and links translations by slug.
+ */
+export function notesForLocale(
+  notes: NoteMeta[],
+  locale: string,
+  defaultLocale: string,
+): NoteMeta[] {
+  const byId = new Map<string, NoteMeta[]>();
+  for (const n of notes) {
+    const list = byId.get(n.id) ?? [];
+    list.push(n);
+    byId.set(n.id, list);
+  }
+  const out: NoteMeta[] = [];
+  for (const variants of byId.values()) {
+    out.push(
+      variants.find((v) => v.lang === locale) ??
+        variants.find((v) => v.lang === defaultLocale) ??
+        variants[0]!,
+    );
+  }
+  return out;
+}
+
+/** Resolve a single route id to the best note for the locale. */
+export function findNote(
+  notes: NoteMeta[],
+  id: string,
+  locale: string,
+  defaultLocale: string,
+): NoteMeta | undefined {
+  const variants = notes.filter((n) => n.id === id);
+  if (variants.length === 0) return undefined;
+  return (
+    variants.find((v) => v.lang === locale) ??
+    variants.find((v) => v.lang === defaultLocale) ??
+    variants[0]
+  );
 }
 
 export interface TreeNode {

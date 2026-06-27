@@ -1,0 +1,161 @@
+---
+title: 撰写笔记
+description: 一份关于编写、组织并发布 Grimoire 笔记的实用指南。
+tags: [指南, 撰写]
+date: "2026-06-27"
+icon: ✍️
+order: 1
+---
+
+Grimoire 中的一切都始于 `notes/` 目录下的一个 `.mdx` 文件。本指南将介绍笔记
+存放在哪里、frontmatter 里该写什么，以及从一个空白文件到渲染成页面的最快
+路径。
+
+<Callout type="tip" title="黄金法则">
+组件是**全局可用**的——绝不要在笔记里写 `import`。像 `<Chart/>` 和
+`<DataTable/>` 这样的内置组件随时可用，而你放进 `components/` 的任何东西都会
+按文件名自动注册。
+</Callout>
+
+## 笔记存放在哪里
+
+`notes/` 文件夹就是整棵内容树。磁盘上的目录结构*就是*导航：
+
+- 每个**文件夹**会成为一个**分类**（例如 `notes/guides/` → “Guides” 分组）。
+- 每个 **`.mdx` 文件**会成为一篇**笔记**，以 `category/slug` 的形式寻址。
+- **`index.mdx`** 代表文件夹本身——可用作分类的着陆页。
+
+```bash
+notes/
+├─ guides/
+│  ├─ index.mdx          # “Guides” 着陆页
+│  ├─ getting-started.mdx
+│  └─ authoring.mdx      # 本篇笔记 → guides/authoring
+└─ reference/
+   └─ components.mdx     # reference/components
+```
+
+slug 直接取自文件名，所以 `getting-started.mdx` 可通过
+`guides/getting-started` 访问。重命名文件，路由也随之改变。
+
+## Frontmatter 字段
+
+每篇笔记都以一段夹在 `---` 围栏之间的 YAML 块开头。真正必填的只有 `title`，
+但一篇好的笔记会把下面这些大多填上：
+
+| 字段          | 类型            | 说明                                               |
+| ------------- | --------------- | -------------------------------------------------- |
+| `title`       | 字符串          | 作为页面标题显示，并出现在侧边栏中。               |
+| `description` | 字符串          | 一行话；用于预览和搜索。                           |
+| `tags`        | string[]        | 小写单词，例如 `[guide, authoring]`。              |
+| `date`        | 带引号字符串    | **必须**加引号：`"YYYY-MM-DD"`。                   |
+| `icon`        | 单个 emoji      | 出现在导航中标题旁边。                             |
+| `order`       | 数字            | 数值越小在所属分类中排得越靠前（可选）。           |
+| `draft`       | 布尔值          | `true` 会让该笔记从构建中隐藏（可选）。            |
+
+<Callout type="warning" title="给日期加引号">
+`date: 2026-06-27` 会被 YAML 解析为一个*日期对象*，而非字符串。请始终用引号
+把它包起来——`date: "2026-06-27"`——否则构建会报错。
+</Callout>
+
+一段最简且有效的 frontmatter 块长这样：
+
+```mdx
+---
+title: Authoring Notes
+description: A practical guide to writing Grimoire notes.
+tags: [guide, authoring]
+date: "2026-06-27"
+icon: ✍️
+order: 1
+---
+
+你的引言段落就从这里开始——不需要 `# H1`，
+因为标题来自上方的 frontmatter。
+```
+
+## 创建你的第一篇笔记
+
+<Steps>
+  <Step title="生成文件">
+  使用 `new` 脚本。路径中的文件夹会被自动创建，因此你可以一步把笔记嵌套进
+  一个新分类里：
+
+  ```bash
+  bun run new guides/my-first-note --title "My First Note" --tags guide,demo
+  ```
+  </Step>
+  <Step title="填写 frontmatter">
+  打开生成的文件，补全 `description`，挑一个 `icon`，如果你在意它在侧边栏里
+  的位置，就设个 `order`。
+  </Step>
+  <Step title="撰写正文">
+  Markdown 采用 GitHub 风格——表格、任务清单和围栏代码块都能用。在纯文字
+  力不从心的地方，随手撒上一些组件。
+  </Step>
+  <Step title="实时预览">
+  启动开发服务器，保存时笔记会热重载：
+
+  ```bash
+  bun run dev
+  ```
+
+  如果需要强制刷新，按 <Kbd>Ctrl</Kbd> + <Kbd>R</Kbd>。
+  </Step>
+</Steps>
+
+## 命令行 vs. 手动
+
+两种方式生成的文件完全相同——挑一个适合你工作流的即可。
+
+<Tabs>
+  <Tab label="通过命令行">
+  脚手架脚本会输出一篇起步笔记，带上今天的日期，并已经放好一个 `Callout`：
+
+  ```bash
+  bun run new reference/keyboard-shortcuts \
+    --title "Keyboard Shortcuts" \
+    --tags reference,ux
+  ```
+
+  它拒绝覆盖已存在的文件，所以反复运行也很安全。
+  </Tab>
+  <Tab label="手动">
+  更喜欢一张白纸？自己创建文件并粘贴进 frontmatter：
+
+  ```bash
+  mkdir -p notes/reference
+  $EDITOR notes/reference/keyboard-shortcuts.mdx
+  ```
+
+  然后在顶部写好 `---` 块，开始打字。一旦保存，开发服务器就会立刻识别这个
+  新文件。
+  </Tab>
+</Tabs>
+
+## 自带组件
+
+`components/` 中任何 `.tsx`（或 `.jsx`）文件都会按其导出名自动注册，并可在
+**每篇**笔记中使用——无需 import，也不用编辑任何清单文件。目前项目自带
+`StatCard`，你可以直接使用：
+
+<StatCard label="本文件夹中的笔记数" value="3" delta="+1" trend="up" />
+
+要添加你自己的组件，放一个导出 `Highlight` 组件的 `components/Highlight.tsx`，
+然后在任意位置写 `<Highlight/>`。开发服务器重新加载后它就生效了。
+
+<Callout type="info" title="命名">
+组件导出的名字就是你在 MDX 中书写的名字。请保持 `PascalCase`，这样它读起来
+像一个 JSX 元素，也不会与 HTML 标签冲突。
+</Callout>
+
+## 一份速查清单
+
+- [x] 文件位于 `notes/<category>/` 之下
+- [x] frontmatter 含有 `title`、`description` 和带引号的 `date`
+- [ ] 设好 `icon` 和 `order`，让侧边栏排布更美观
+- [ ] 正文以一两句话的引言开头（不要 `# H1`）
+- [ ] 发布前用 `bun run dev` 预览过
+
+整个循环就是这样：生成、编辑、预览、重复。写 Markdown，在组件真正派上用场
+时再请它出场，剩下的归档工作就交给文件夹结构去做吧。

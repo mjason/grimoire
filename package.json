@@ -1,0 +1,57 @@
+{
+  "name": "grimoire",
+  "version": "0.1.0",
+  "description": "An AI-oriented, MDX-based note system that compiles to a single binary.",
+  "type": "module",
+  "module": "src/client/main.tsx",
+  "license": "MIT",
+  "author": "MJ",
+  "homepage": "https://github.com/mjason/grimoire#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mjason/grimoire.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mjason/grimoire/issues"
+  },
+  "keywords": [
+    "mdx",
+    "notes",
+    "bun",
+    "preact",
+    "tailwindcss",
+    "chartjs",
+    "single-binary",
+    "static-site-generator",
+    "knowledge-base"
+  ],
+  "engines": {
+    "bun": ">=1.2.0"
+  },
+  "scripts": {
+    "dev": "bun run src/dev.ts",
+    "build": "bun run src/build.ts",
+    "compile": "bun run src/build.ts && bun run src/compile.ts",
+    "start": "bun run src/server.ts",
+    "verify": "bun run src/verify.ts",
+    "new": "bun run src/scaffold.ts"
+  },
+  "dependencies": {
+    "@mdx-js/mdx": "^3.1.0",
+    "@mdx-js/preact": "^3.1.0",
+    "chart.js": "^4.4.7",
+    "gray-matter": "^4.0.3",
+    "preact": "^10.25.4",
+    "rehype-highlight": "^7.0.1",
+    "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.0.0",
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/bun": "^1.2.0",
+    "preact-render-to-string": "^6",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.0"
+  }
+}

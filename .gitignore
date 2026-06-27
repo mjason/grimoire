@@ -1,0 +1,15 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+grimoire
+grimoire-*
+*.exe
+
+# generated manifest (rebuilt on every `bun run build`)
+src/client/generated/
+
+# misc
+.DS_Store
+*.log

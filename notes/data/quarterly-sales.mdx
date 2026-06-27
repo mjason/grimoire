@@ -1,0 +1,126 @@
+---
+title: Quarterly Sales Dashboard
+description: Q1 2026 revenue, MRR, and top-account health at a glance.
+tags: [data, finance, dashboard]
+date: "2026-04-15"
+icon: 📊
+order: 1
+---
+
+A finance snapshot for **Q1 2026** (quarter ended 31 Mar). All figures are in USD
+and reconcile across the cards, charts, and account table below — total Q1 revenue
+of **$4.82M** is the sum of the four regions, the four product lines, and the
+recurring + services split shown throughout.
+
+<CardGrid columns={4}>
+  <StatCard label="Revenue (Q1)" value="$4.82M" delta="+9.5%" trend="up" />
+  <StatCard label="Gross margin" value="73.2%" delta="+1.8 pts" trend="up" />
+  <StatCard label="New customers" value="342" delta="+9%" trend="up" />
+  <StatCard label="Gross churn" value="2.1%" delta="-0.4 pts" trend="down" />
+</CardGrid>
+
+## Revenue by region
+
+Quarterly recognised revenue (k$) across the last four quarters. North America
+still leads, but APAC is the fastest grower — up **15% QoQ**.
+
+<Chart
+  type="bar"
+  title="Revenue by region (k$)"
+  caption="Recognised revenue, last four quarters."
+  height={320}
+  data={{
+    labels: ["Q2 2025", "Q3 2025", "Q4 2025", "Q1 2026"],
+    datasets: [
+      { label: "North America", data: [1980, 2110, 2240, 2420] },
+      { label: "EMEA", data: [1240, 1300, 1380, 1510] },
+      { label: "APAC", data: [480, 540, 600, 690] },
+      { label: "LATAM", data: [150, 165, 180, 200] },
+    ],
+  }}
+/>
+
+<Callout type="success" title="APAC is the standout">
+APAC revenue grew from **$600k to $690k** quarter-over-quarter (**+15%**),
+outpacing North America (+8%) and EMEA (+9.4%). At the current run rate APAC
+crosses $1M/quarter by Q4 2026 and overtakes EMEA's *growth contribution* well
+before that.
+</Callout>
+
+## Monthly recurring revenue
+
+MRR climbed every month over the trailing year, from **$1.18M to $1.64M** — a
+**38.9%** increase. The three Q1 months (Jan–Mar) sum to $4.64M of recurring
+revenue; the remaining ~$180k of Q1 revenue is one-off onboarding and services.
+
+<Chart
+  type="line"
+  title="Monthly recurring revenue (k$)"
+  caption="Trailing 12 months, May 2025 → Apr 2026."
+  height={300}
+  data={{
+    labels: [
+      "May", "Jun", "Jul", "Aug", "Sep", "Oct",
+      "Nov", "Dec", "Jan", "Feb", "Mar", "Apr"
+    ],
+    datasets: [
+      { label: "MRR", data: [1180, 1215, 1260, 1305, 1340, 1385, 1420, 1460, 1505, 1545, 1590, 1640] },
+    ],
+  }}
+/>
+
+## Revenue by product line
+
+The core **Platform** remains the engine at 55% of Q1 revenue, but **Analytics**
+is now a real second act at $1.18M.
+
+<Chart
+  type="doughnut"
+  title="Q1 2026 revenue by product line (k$)"
+  caption="Sums to $4.82M — the Q1 total."
+  height={300}
+  data={{
+    labels: ["Platform", "Analytics", "Integrations", "Support & Services"],
+    datasets: [
+      { label: "Q1 revenue", data: [2650, 1180, 810, 180] },
+    ],
+  }}
+/>
+
+## Top accounts
+
+The 10 largest accounts by MRR. Together they contribute **$478k/mo** — roughly
+**29%** of total MRR — so concentration risk is worth watching.
+
+<DataTable
+  searchable
+  pageSize={10}
+  caption="Top 10 accounts by monthly recurring revenue."
+  columns={["name", "region", "plan", "mrr", "status"]}
+  data={[
+    { name: "Northwind Logistics", region: "North America", plan: "Enterprise", mrr: 94500, status: "Expanding" },
+    { name: "Helvetia Financial", region: "EMEA", plan: "Enterprise", mrr: 71200, status: "Active" },
+    { name: "Meridian Health", region: "North America", plan: "Enterprise", mrr: 63800, status: "Renewing" },
+    { name: "Sakura Robotics", region: "APAC", plan: "Business", mrr: 52400, status: "Expanding" },
+    { name: "Andes Telecom", region: "LATAM", plan: "Business", mrr: 41900, status: "Active" },
+    { name: "Cinder & Co", region: "North America", plan: "Business", mrr: 33600, status: "At risk" },
+    { name: "Baltic Freight", region: "EMEA", plan: "Growth", mrr: 28700, status: "Active" },
+    { name: "Lumen Retail", region: "North America", plan: "Growth", mrr: 24300, status: "At risk" },
+    { name: "Coral Pay", region: "APAC", plan: "Growth", mrr: 19200, status: "Expanding" },
+    { name: "Vertex Studios", region: "EMEA", plan: "Starter", mrr: 18100, status: "Active" },
+  ]}
+/>
+
+<Callout type="warning" title="Two top-10 accounts are flagged at risk">
+**Cinder & Co** ($33.6k) and **Lumen Retail** ($24.3k) together represent
+**$57.9k/mo** of at-risk MRR — about **3.5%** of the book. Both renew in Q2, so
+prioritise the QBRs now. Net of these, gross churn would land near **1.4%**.
+</Callout>
+
+### Quarter checklist
+
+- [x] Close the books and reconcile region vs product-line totals
+- [x] Confirm MRR bridge (new + expansion − contraction − churn)
+- [ ] Schedule QBRs for the two at-risk accounts
+- [ ] Lock APAC hiring plan to sustain +15% QoQ
+- [ ] Draft Q2 2026 forecast for the board deck

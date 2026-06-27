@@ -1,0 +1,141 @@
+---
+title: Intro to Machine Learning
+description: An approachable tour of how machines learn from data — the three paradigms, a loss curve, the milestones, and the pitfalls.
+tags: [ml, ai]
+date: "2026-06-27"
+icon: 🤖
+order: 1
+---
+
+Machine learning is the art of writing programs that improve at a task by looking
+at examples rather than by following hand-coded rules. Instead of telling the
+computer *how* to recognize a cat, you show it thousands of labelled pictures and
+let it tune millions of internal parameters until its guesses line up with reality.
+
+<Callout type="info" title="The one-sentence definition">
+A model is a function with adjustable knobs (**parameters**); *learning* is the
+process of nudging those knobs to minimize a **loss** — a number that measures how
+wrong the model currently is.
+</Callout>
+
+## The three paradigms
+
+Almost everything in the field falls into one of three buckets, distinguished by
+*what feedback the learner receives*.
+
+<CardGrid columns={3}>
+  <Card title="Supervised" icon="🏷️">
+    Learn from **labelled** examples — each input comes with the correct answer.
+    Used for spam detection, price prediction, and image classification.
+    Split into *regression* (predict a number) and *classification* (predict a category).
+  </Card>
+  <Card title="Unsupervised" icon="🧩">
+    Find structure in **unlabelled** data — no answer key. Think clustering
+    customers into segments, compressing data, or learning embeddings.
+    The model discovers patterns rather than reproducing given targets.
+  </Card>
+  <Card title="Reinforcement" icon="🎮">
+    Learn by **acting** in an environment and collecting **rewards**. An agent
+    tries actions, sees consequences, and refines a *policy* over time.
+    Powers game-playing agents, robotics, and RLHF for tuning LLMs.
+  </Card>
+</CardGrid>
+
+## What training actually looks like
+
+During training we repeatedly pass the data through the model (each full pass is an
+**epoch**) and watch the loss fall. The catch: we track *two* losses. **Training
+loss** measures fit on data the model has seen; **validation loss** measures fit on
+held-out data it hasn't. As long as both keep dropping together, learning is healthy.
+
+<Chart
+  type="line"
+  title="Training vs validation loss over epochs"
+  caption="Both curves fall, but validation flattens and creeps up after ~epoch 16 — the first whiff of overfitting."
+  height={320}
+  data={{
+    labels: ["1", "3", "5", "7", "9", "11", "13", "15", "17", "19", "21", "23", "25"],
+    datasets: [
+      { label: "Training loss",   data: [2.31, 1.62, 1.18, 0.91, 0.74, 0.61, 0.52, 0.45, 0.39, 0.34, 0.30, 0.27, 0.24] },
+      { label: "Validation loss", data: [2.34, 1.71, 1.33, 1.10, 0.97, 0.89, 0.85, 0.83, 0.82, 0.83, 0.85, 0.88, 0.92] },
+    ],
+  }}
+/>
+
+<Callout type="warning" title="Overfitting: the cardinal sin">
+When training loss keeps dropping but **validation loss turns upward**, the model has
+stopped *learning* and started *memorizing* — it's fitting the noise in your training
+set instead of the underlying signal. It will look brilliant on data it has seen and
+fail on anything new. Common cures: gather more data, add **regularization** (dropout,
+weight decay), simplify the model, or stop training early at the validation minimum
+(here, around **epoch 16**).
+</Callout>
+
+## A short history
+
+Machine learning is older than most people assume. A few load-bearing moments:
+
+<Timeline>
+  <TimelineItem title="The Perceptron" date="1958" icon="🧠">
+    Frank Rosenblatt builds the first trainable artificial neuron. It learns linearly
+    separable patterns — and triggers both wild hype and, later, a painful "AI winter"
+    when its limits (it can't even learn XOR) become clear.
+  </TimelineItem>
+  <TimelineItem title="Backpropagation" date="1986" icon="🔁">
+    Rumelhart, Hinton & Williams popularize an efficient way to compute gradients
+    through *many* layers. Suddenly multi-layer networks are trainable, reviving the field.
+  </TimelineItem>
+  <TimelineItem title="AlexNet & ImageNet" date="2012" icon="🖼️">
+    A deep convolutional network slashes the ImageNet error rate by ~10 points, trained
+    on GPUs. This is the moment "deep learning" goes mainstream.
+  </TimelineItem>
+  <TimelineItem title="Transformers" date="2017" icon="⚡">
+    "Attention Is All You Need" replaces recurrence with self-attention. It parallelizes
+    beautifully and becomes the backbone of nearly every modern large model.
+  </TimelineItem>
+  <TimelineItem title="The LLM era" date="2020s" icon="💬">
+    Scaling transformers to billions of parameters yields large language models that
+    write, reason, and code — and put ML in the hands of everyday users.
+  </TimelineItem>
+</Timeline>
+
+## A typical workflow
+
+<Steps>
+  <Step title="Frame the problem">
+    Decide what you're predicting and what "good" means. Pick a metric *before* you
+    start — accuracy, F1, RMSE — so you can't move the goalposts later.
+  </Step>
+  <Step title="Split the data">
+    Carve out **train / validation / test** sets. The test set stays in a vault until
+    the very end; touch it early and you'll fool yourself.
+  </Step>
+  <Step title="Train and tune">
+    Fit the model, watch the loss curves, and adjust hyperparameters (learning rate,
+    capacity, regularization) against the *validation* set.
+  </Step>
+  <Step title="Evaluate honestly">
+    Report performance on the untouched test set. That number is your real estimate of
+    how the model behaves in the wild.
+  </Step>
+</Steps>
+
+## Check your understanding
+
+<Quiz
+  question="Your model scores 99% on the training set but only 71% on the validation set. What's the most likely diagnosis?"
+  options={[
+    "Underfitting — the model is too simple",
+    "Overfitting — the model is memorizing the training data",
+    "The learning rate is too low",
+    "There is nothing wrong; this is expected",
+  ]}
+  answer={1}
+  explanation="A large gap between strong training performance and weaker validation performance is the textbook signature of overfitting: the model has learned the training set's noise rather than a generalizable pattern. Underfitting would show poor scores on both."
+/>
+
+<Callout type="tip" title="Where to go next">
+Pick one supervised problem you care about, fit a small model, and *plot the two loss
+curves*. Reading those curves — and reacting to them — is the single most useful habit
+a new practitioner can build.
+</Callout>

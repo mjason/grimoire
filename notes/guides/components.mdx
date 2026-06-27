@@ -1,0 +1,229 @@
+---
+title: Component Gallery
+description: A living showcase of every built-in and custom Grimoire component.
+tags: [guide, reference]
+date: "2026-06-27"
+icon: 🧩
+order: 2
+---
+
+This is the visual test page for Grimoire. Every built-in and custom component
+appears below under its own heading with a short note and a live example — if
+something renders wrong here, the build is broken.
+
+## Callout
+
+Boxed asides for emphasis. One per `type`, each with optional `title`.
+
+<Callout type="note">
+A plain **note** — neutral context that doesn't fit the main flow.
+</Callout>
+
+<Callout type="info" title="Heads up">
+Informational detail. Markdown works inside: `inline code`, [links](https://example.com), and **bold**.
+</Callout>
+
+<Callout type="tip" title="Pro tip">
+Prefer fenced code blocks with a language so syntax highlighting kicks in.
+</Callout>
+
+<Callout type="success" title="Shipped">
+The 1.4.0 release passed all 312 checks and deployed in 41 seconds.
+</Callout>
+
+<Callout type="warning" title="Careful">
+Editing `config.toml` while the dev server runs forces a full reload.
+</Callout>
+
+<Callout type="danger" title="Destructive">
+`grimoire purge --all` deletes the rendered cache and cannot be undone.
+</Callout>
+
+## Chart — line
+
+Time-series and trends. Multiple datasets overlay on shared `labels`.
+
+<Chart
+  type="line"
+  title="Weekly active readers"
+  caption="Rolling 8-week window, two cohorts"
+  height={280}
+  data={{
+    labels: ["W1", "W2", "W3", "W4", "W5", "W6", "W7", "W8"],
+    datasets: [
+      { label: "Returning", data: [820, 932, 901, 1034, 1190, 1230, 1275, 1402] },
+      { label: "New", data: [220, 281, 240, 318, 295, 360, 401, 388] },
+    ],
+  }}
+/>
+
+## Chart — doughnut
+
+Part-to-whole breakdowns. A single dataset, one slice per label.
+
+<Chart
+  type="doughnut"
+  title="Traffic by source"
+  caption="Last 30 days"
+  height={280}
+  data={{
+    labels: ["Organic", "Direct", "Referral", "Social", "Email"],
+    datasets: [
+      { label: "Sessions", data: [4820, 2110, 1340, 980, 640] },
+    ],
+  }}
+/>
+
+## DataTable
+
+Searchable, paginated tables. Columns are inferred from keys when omitted; here
+we pin order explicitly.
+
+<DataTable
+  searchable
+  pageSize={5}
+  caption="Service latency by region (p95, ms)"
+  columns={["region", "service", "p95", "errorRate", "uptime"]}
+  data={[
+    { region: "us-east-1", service: "api", p95: 142, errorRate: "0.04%", uptime: "99.98%" },
+    { region: "us-west-2", service: "api", p95: 167, errorRate: "0.07%", uptime: "99.96%" },
+    { region: "eu-west-1", service: "api", p95: 189, errorRate: "0.05%", uptime: "99.97%" },
+    { region: "eu-central-1", service: "render", p95: 211, errorRate: "0.11%", uptime: "99.93%" },
+    { region: "ap-south-1", service: "render", p95: 254, errorRate: "0.14%", uptime: "99.90%" },
+    { region: "ap-northeast-1", service: "search", p95: 198, errorRate: "0.06%", uptime: "99.95%" },
+    { region: "sa-east-1", service: "search", p95: 276, errorRate: "0.18%", uptime: "99.88%" },
+    { region: "ca-central-1", service: "auth", p95: 121, errorRate: "0.02%", uptime: "99.99%" },
+    { region: "af-south-1", service: "auth", p95: 233, errorRate: "0.09%", uptime: "99.92%" },
+    { region: "me-south-1", service: "media", p95: 245, errorRate: "0.12%", uptime: "99.91%" },
+  ]}
+/>
+
+## Tabs
+
+Group alternative views or platform-specific instructions behind labels.
+
+<Tabs>
+  <Tab label="npm">
+```bash
+npm install grimoire
+npx grimoire build ./notes
+```
+  </Tab>
+  <Tab label="pnpm">
+```bash
+pnpm add grimoire
+pnpm grimoire build ./notes
+```
+  </Tab>
+  <Tab label="Cargo">
+```bash
+cargo install grimoire-cli
+grimoire build ./notes
+```
+  </Tab>
+</Tabs>
+
+## Steps
+
+Ordered, numbered procedures. Each `Step` takes a `title`.
+
+<Steps>
+  <Step title="Scaffold">
+Run `grimoire init my-grimoire` to create the folder layout and a sample note.
+  </Step>
+  <Step title="Write">
+Add `.mdx` files under `notes/`. Frontmatter drives the title, tags, and order.
+  </Step>
+  <Step title="Preview">
+`grimoire dev` serves the app with hot reload at `localhost:4321`.
+  </Step>
+  <Step title="Ship">
+`grimoire build` emits a single static binary you can drop on any host.
+  </Step>
+</Steps>
+
+## CardGrid
+
+A responsive grid of linkable cards. Set `columns` to 2, 3, or 4.
+
+<CardGrid columns={3}>
+  <Card title="Getting Started" icon="🚀" note="guides/getting-started">
+The quick tour — your first note in five minutes.
+  </Card>
+  <Card title="Theming" icon="🎨">
+Swap palettes, fonts, and the syntax-highlight scheme.
+  </Card>
+  <Card title="Deploy" icon="📦">
+Static output, zero runtime — ship it to any CDN.
+  </Card>
+  <Card title="Search" icon="🔍">
+Client-side full-text index built at compile time.
+  </Card>
+  <Card title="Plugins" icon="🔌">
+Register custom components by dropping files in `components/`.
+  </Card>
+  <Card title="API" icon="⚙️">
+Programmatic build hooks for CI pipelines.
+  </Card>
+</CardGrid>
+
+## Badge
+
+Small inline labels. `color` accepts any hex value.
+
+<Badge color="#7c3aed">stable</Badge> <Badge color="#0ea5e9">beta</Badge> <Badge color="#f59e0b">experimental</Badge> <Badge color="#ef4444">deprecated</Badge> <Badge color="#10b981">new</Badge>
+
+## Kbd
+
+Renders keyboard keys. Combine a few for a shortcut.
+
+Open the command palette with <Kbd>Ctrl</Kbd> + <Kbd>K</Kbd>, or save with <Kbd>Cmd</Kbd> + <Kbd>S</Kbd>.
+
+## StatCard
+
+A single headline metric with an optional delta and trend arrow.
+
+<CardGrid columns={3}>
+  <StatCard label="Active notes" value="128" delta="+8%" trend="up" />
+  <StatCard label="Avg. build time" value="0.9s" delta="-12%" trend="down" />
+  <StatCard label="Open issues" value="14" delta="0" trend="flat" />
+</CardGrid>
+
+## Timeline
+
+A vertical sequence of events. Each `TimelineItem` takes a `title`, `date`, and `icon`.
+
+<Timeline>
+  <TimelineItem title="Project kickoff" date="2026-01" icon="✨">
+First commit, MDX pipeline wired up, single demo note rendering.
+  </TimelineItem>
+  <TimelineItem title="Public beta" date="2026-03" icon="🚧">
+Search, theming, and the component library land. 40 early users.
+  </TimelineItem>
+  <TimelineItem title="1.0 release" date="2026-06" icon="🎉">
+Stable API, static binary export, and full documentation site.
+  </TimelineItem>
+</Timeline>
+
+## ProgressBar
+
+Labeled progress toward a `max`. `color` is optional.
+
+<ProgressBar label="Docs coverage" value={72} max={100} color="#7c3aed" />
+<ProgressBar label="Test suite migrated" value={310} max={420} color="#10b981" />
+
+## Quiz
+
+An inline knowledge check with an explanation revealed after answering.
+
+<Quiz
+  question="Which directory makes a custom component globally available in notes?"
+  options={["pages/", "components/", "public/", "layouts/"]}
+  answer={1}
+  explanation="Anything in components/ is auto-registered, so you can use it in any note without an import."
+/>
+
+---
+
+That's the full set. Use this page as a regression check after upgrading the
+renderer — scroll once, and every component should look correct.

@@ -1,0 +1,48 @@
+---
+title: Getting Started
+description: A quick tour of what a Grimoire note can do.
+tags: [guide, intro]
+date: 2026-06-27
+icon: 🚀
+order: 0
+---
+
+Welcome to **Grimoire** — notes written in MDX, rendered as a fast little app,
+and shippable as a single binary.
+
+<Callout type="tip" title="No imports needed">
+Built-in components like `<Chart/>`, `<DataTable/>` and `<Callout/>` are always
+available. Drop a component in `components/` and it's auto-registered too.
+</Callout>
+
+## A chart
+
+<Chart
+  type="bar"
+  title="Quarterly revenue (k$)"
+  data={{
+    labels: ["Q1", "Q2", "Q3", "Q4"],
+    datasets: [
+      { label: "2025", data: [42, 55, 61, 70] },
+      { label: "2026", data: [50, 64, 73, 88] },
+    ],
+  }}
+/>
+
+## An interactive table
+
+<DataTable
+  searchable
+  data={[
+    { name: "Ada Lovelace", field: "Computing", year: 1843, score: 99 },
+    { name: "Grace Hopper", field: "Compilers", year: 1952, score: 97 },
+    { name: "Katherine Johnson", field: "Orbital mechanics", year: 1961, score: 98 },
+    { name: "Hedy Lamarr", field: "Spread spectrum", year: 1942, score: 95 },
+  ]}
+/>
+
+## A custom component
+
+<StatCard label="Active notes" value="128" delta="+8%" trend="up" />
+
+That's it — write Markdown, sprinkle in components, and rebuild.

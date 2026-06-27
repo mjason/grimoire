@@ -1,0 +1,141 @@
+---
+title: Markdown & MDX Reference
+description: A dense cheat-sheet of the Markdown and MDX features Grimoire renders.
+tags: [reference]
+date: "2026-06-27"
+icon: 📐
+order: 0
+---
+
+Grimoire notes are **MDX**: standard GitHub-flavoured Markdown plus inline JSX
+components. This page is a quick reference you can copy from — every block below
+is shown exactly as it renders.
+
+## Headings
+
+Use `#` through `######`. The H1 is reserved for the frontmatter `title`, so
+start your body content at `##`.
+
+```md
+## Section
+### Subsection
+#### Detail
+```
+
+## Inline text
+
+Combine **bold** (`**bold**`), *italic* (`*italic*`), ***both***
+(`***both***`), ~~strikethrough~~ (`~~strikethrough~~`), and inline `code`
+(`` `code` ``). Footnote-style emphasis stacks cleanly inside prose.
+
+## Links
+
+Internal and external links use the same `[text](url)` syntax:
+
+- Relative: [the getting-started guide](../guides/getting-started.mdx)
+- External: [MDX documentation](https://mdxjs.com) — opens the upstream docs
+- Autolink: https://commonmark.org — bare URLs become links automatically
+
+## Lists
+
+Unordered lists nest with two-space indents; ordered lists renumber
+automatically.
+
+- Parsing
+  - Tokenize
+  - Build the AST
+- Rendering
+  - Map nodes to components
+
+1. Write the note
+2. Save the file
+3. Reload — hot module replacement picks it up
+
+## Task lists
+
+GitHub-flavoured checkboxes render as real toggles:
+
+- [x] Define the frontmatter schema
+- [x] Wire up syntax highlighting
+- [ ] Add full-text search
+- [ ] Export to a single binary
+
+## Blockquotes
+
+> "Any sufficiently advanced note system is indistinguishable from a wiki."
+>
+> Quotes can span multiple paragraphs and contain **formatting**, `code`, and
+> [links](https://example.com).
+
+## Code blocks
+
+Always tag fenced blocks with a language so the highlighter engages. Here are
+three to compare:
+
+```ts
+// TypeScript
+type Note = { title: string; tags: string[]; draft?: boolean };
+
+export function visible(notes: Note[]): Note[] {
+  return notes.filter((n) => !n.draft).sort((a, b) => a.title.localeCompare(b.title));
+}
+```
+
+```python
+# Python
+from dataclasses import dataclass
+
+@dataclass
+class Note:
+    title: str
+    tags: list[str]
+    draft: bool = False
+
+def visible(notes: list[Note]) -> list[Note]:
+    return sorted((n for n in notes if not n.draft), key=lambda n: n.title)
+```
+
+```bash
+# Bash
+find notes -name '*.mdx' -print0 \
+  | xargs -0 grep -L '^title:' \
+  | sed 's/^/missing title: /'
+```
+
+## Tables
+
+GFM tables support per-column alignment with `:` markers in the divider row:
+
+| Component   | Self-closing | Common prop      | Notes                        |
+| :---------- | :----------: | :--------------- | ---------------------------: |
+| `Callout`   |      no      | `type`           | wraps markdown children      |
+| `Chart`     |     yes      | `data`           | colors auto-applied          |
+| `DataTable` |     yes      | `data`           | `searchable` + `pageSize`    |
+| `Badge`     |      no      | `color`          | inline, hex color            |
+
+## Horizontal rule
+
+Three or more dashes on their own line draw a divider:
+
+---
+
+## MDX adds components
+
+Beyond Markdown, you can drop JSX components straight into the prose. Props use
+single braces for expressions — `value={42}` — and double braces for object
+literals — `data={{ ... }}`.
+
+<Callout type="tip" title="Components are global">
+No `import` statements are needed in a note. Built-ins like `<Callout/>` and
+`<Badge/>` are always in scope, and anything in `components/` is auto-registered
+at build time.
+</Callout>
+
+Inline components flow with the text, too — for example a status pill like
+<Badge color="#7c3aed">stable</Badge> sits right inside a sentence, next to a
+<Badge color="#dc2626">deprecated</Badge> marker, without breaking the line.
+
+<Callout type="warning" title="Invented props break the build">
+Stick to the documented prop names. An unknown component or misspelled prop
+fails the MDX compile rather than degrading gracefully.
+</Callout>

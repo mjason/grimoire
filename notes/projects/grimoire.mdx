@@ -1,0 +1,133 @@
+---
+title: About This Grimoire
+description: The meta note — how this MDX note system is built, shipped, and where it's headed.
+tags: [meta]
+date: "2026-06-27"
+icon: 📓
+order: 0
+---
+
+You're reading a note rendered by the very system it describes. **Grimoire** turns a
+folder of MDX files into a fast, searchable little app — and then folds that whole app,
+runtime included, into a single self-contained binary you can copy onto any machine.
+
+## The pitch
+
+Write Markdown. When prose isn't enough, drop in a component — a `<Chart/>`, a
+`<DataTable/>`, a `<Quiz/>` — no imports, no wiring. The build statically renders every
+note, bundles the interactive islands, and `bun build --compile` stamps it all into one
+executable. No Node install, no `npm i` on the target box, no Docker. Just `./grimoire`.
+
+<CardGrid columns={2}>
+  <Card title="MDX, not Markdown" icon="✍️">
+    GitHub-flavoured Markdown plus JSX. Tables, task lists and code fences when you want
+    calm; live components when you want teeth.
+  </Card>
+  <Card title="Zero-import components" icon="🧩">
+    Everything in <code>components/</code> is auto-registered into the MDX scope. Author a
+    <code>.tsx</code> file, use the tag the next morning.
+  </Card>
+  <Card title="One binary" icon="📦">
+    <code>bun run compile</code> embeds the assets, the Preact runtime and your content
+    into a ~50&nbsp;MB standalone executable.
+  </Card>
+  <Card title="Island interactivity" icon="🏝️">
+    Notes are pre-rendered to HTML for instant paint; charts and tables hydrate on
+    demand. Fast first byte, lively second.
+  </Card>
+</CardGrid>
+
+## How it's wired
+
+A note is just a file. `gray-matter` peels off the YAML frontmatter, `@mdx-js` compiles
+the body, and `remark-gfm` + `rehype-slug` + `rehype-highlight` handle tables, anchors and
+syntax highlighting. Preact renders the tree; Tailwind v4 paints it; Chart.js draws the
+graphs. Bun ties the whole thing together at build time.
+
+```ts
+// the shape every note resolves to
+type Note = {
+  slug: string;          // "projects/grimoire"
+  frontmatter: Frontmatter;
+  Component: FunctionComponent; // the compiled MDX
+  headings: Heading[];   // pulled for the on-page TOC
+};
+```
+
+## The build journey
+
+How this thing came to be, in the order the commits landed.
+
+<Timeline>
+  <TimelineItem title="Scaffold & dev loop" date="2026-05" icon="🌱">
+    Bun project, Preact + Tailwind, a hash-router and a hot-reloading `dev.ts`. First
+    note rendered to the screen the same evening.
+  </TimelineItem>
+  <TimelineItem title="MDX pipeline" date="2026-05" icon="⚙️">
+    Wired `@mdx-js/preact` with `remark-gfm`, `rehype-slug` and `rehype-highlight`.
+    Frontmatter parsed by `gray-matter` and surfaced as typed metadata.
+  </TimelineItem>
+  <TimelineItem title="Component library" date="2026-06" icon="🧩">
+    Built the core kit — Callout, Chart, DataTable, Tabs, Steps, CardGrid — plus custom
+    ones like StatCard and ProgressBar, all auto-discovered from `components/`.
+  </TimelineItem>
+  <TimelineItem title="Single-binary compile" date="2026-06" icon="📦">
+    `bun build --compile` bundling the static HTML, hydration islands and assets into one
+    executable. Copy it anywhere; it just runs.
+  </TimelineItem>
+  <TimelineItem title="Content & polish" date="2026-06" icon="✨">
+    Theme tokens, dark mode, sidebar ordering, a search index — and the first real notes,
+    including this one.
+  </TimelineItem>
+</Timeline>
+
+## Roadmap
+
+Where the effort sits right now. Core is done; the rest is catching up.
+
+<ProgressBar label="Core engine — MDX, build, compile" value={100} max={100} color="#10b981" />
+<ProgressBar label="Documentation — guides & reference" value={80} max={100} color="#7c3aed" />
+<ProgressBar label="Themes — palettes & layout presets" value={40} max={100} color="#f59e0b" />
+
+<Callout type="info" title="What 'done' means for Core">
+Core is feature-frozen for `0.1`: notes compile, components hydrate, and the binary ships.
+New work goes into docs and theming so the surface keeps up with the engine.
+</Callout>
+
+## Build at a glance
+
+A few honest numbers from a clean `bun run compile` on this repo.
+
+<DataTable
+  caption="Measured on a clean build, M-class laptop"
+  data={[
+    { stage: "Parse & compile MDX", notes: 6, ms: 180 },
+    { stage: "Static render to HTML", notes: 6, ms: 240 },
+    { stage: "Bundle hydration islands", notes: 6, ms: 410 },
+    { stage: "Compile single binary", notes: 6, ms: 2600 },
+  ]}
+  columns={["stage", "notes", "ms"]}
+/>
+
+## Keep reading
+
+<CardGrid columns={2}>
+  <Card title="Getting Started" icon="🚀" note="guides/getting-started">
+    The five-minute tour — your first note, a chart, a table, a custom component.
+  </Card>
+  <Card title="Authoring Guide" icon="✍️" note="guides/authoring">
+    Frontmatter fields, the full component contract, and patterns that read well.
+  </Card>
+  <Card title="Component Reference" icon="🧩" note="reference/components">
+    Every built-in and custom component with exact props and copyable examples.
+  </Card>
+  <Card title="Theming" icon="🎨" note="guides/theming">
+    Accent palettes, light/dark tokens, and ordering the sidebar in `config.ts`.
+  </Card>
+</CardGrid>
+
+<Callout type="success" title="It's just files">
+No database, no server to babysit, no build server. Your knowledge lives as plain MDX in
+git, and ships as one binary you can hand to anyone. Write a note, run `bun run compile`,
+and you've got a notebook that boots in milliseconds.
+</Callout>

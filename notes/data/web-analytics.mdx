@@ -1,0 +1,111 @@
+---
+title: Web Analytics
+description: A two-week traffic report — visitors, signups, sources, and the pages that earn attention.
+tags: [data, analytics]
+date: "2026-05-02"
+icon: 📈
+order: 10
+---
+
+The numbers below cover **April 19 – May 2, 2026**. Traffic climbed steadily through the
+fortnight on the back of a launch post and a newsletter send, while signups tracked the
+weekday rhythm you'd expect from a B2B audience.
+
+<CardGrid columns={4}>
+  <Card title="Visitors" icon="👥">18,420 total · +14% WoW</Card>
+  <Card title="Signups" icon="✍️">612 total · 3.3% conv.</Card>
+  <Card title="Avg. session" icon="⏱️">2m 41s · +9s</Card>
+  <Card title="Bounce rate" icon="↩️">38.6% · −2.1pp</Card>
+</CardGrid>
+
+## Daily traffic
+
+Visitors and signups over the trailing 14 days. The two spikes (Apr 23 and Apr 30) line up
+with the launch post and the newsletter send — note how signups lag visitors by roughly a day
+as readers come back to convert.
+
+<Chart
+  type="line"
+  title="Daily visitors vs. signups"
+  caption="Apr 19 – May 2, 2026. Visitors on the primary trend; signups scaled to the same axis."
+  height={320}
+  data={{
+    labels: [
+      "Apr 19", "Apr 20", "Apr 21", "Apr 22", "Apr 23", "Apr 24", "Apr 25",
+      "Apr 26", "Apr 27", "Apr 28", "Apr 29", "Apr 30", "May 1", "May 2",
+    ],
+    datasets: [
+      {
+        label: "Visitors",
+        data: [980, 1040, 1180, 1260, 1890, 1520, 1110, 1050, 1340, 1410, 1480, 2120, 1690, 1350],
+      },
+      {
+        label: "Signups",
+        data: [28, 31, 39, 44, 71, 58, 36, 33, 47, 52, 55, 88, 64, 46],
+      },
+    ],
+  }}
+/>
+
+## Where traffic came from
+
+Organic search remains the workhorse, but the newsletter punched above its weight this
+fortnight — a small list converting at nearly triple the site average.
+
+<Chart
+  type="bar"
+  title="Top traffic sources (sessions)"
+  caption="Sessions by acquisition channel over the reporting window."
+  height={300}
+  data={{
+    labels: ["Organic search", "Direct", "Newsletter", "Referral", "Social", "Paid"],
+    datasets: [
+      { label: "Sessions", data: [6840, 4120, 2980, 1760, 1540, 1180] },
+    ],
+  }}
+/>
+
+## Goal completion
+
+Progress against the quarter's targets as of today. Signups are comfortably on pace; revenue
+is the one to watch with three weeks left in the period.
+
+<ProgressBar label="Signup goal — 612 / 850" value={72} max={100} color="#7c3aed" />
+<ProgressBar label="Revenue goal — $58.4k / $95k" value={61} max={100} color="#0ea5e9" />
+<ProgressBar label="Newsletter goal — 4,380 / 5,000 subs" value={88} max={100} color="#10b981" />
+
+<Callout type="tip" title="Read the bars as pace, not progress">
+We're ~62% through the quarter by calendar. Anything above that line is ahead of pace
+(signups, newsletter); anything below needs attention (revenue).
+</Callout>
+
+## Top pages
+
+The pages doing the heaviest lifting. The pricing page is the conversion choke point — high
+intent, low bounce — while the changelog keeps people on-site the longest.
+
+<DataTable
+  searchable
+  pageSize={6}
+  caption="Top landing and content pages by views."
+  data={[
+    { path: "/", views: 5420, avgTime: "1m 12s", bounce: "41%" },
+    { path: "/pricing", views: 3180, avgTime: "2m 03s", bounce: "28%" },
+    { path: "/blog/launch-2026", views: 2960, avgTime: "3m 47s", bounce: "52%" },
+    { path: "/docs/getting-started", views: 2140, avgTime: "4m 18s", bounce: "22%" },
+    { path: "/changelog", views: 1680, avgTime: "5m 02s", bounce: "19%" },
+    { path: "/signup", views: 1490, avgTime: "0m 58s", bounce: "12%" },
+    { path: "/blog/why-mdx", views: 1210, avgTime: "3m 31s", bounce: "57%" },
+    { path: "/about", views: 870, avgTime: "1m 26s", bounce: "63%" },
+  ]}
+  columns={["path", "views", "avgTime", "bounce"]}
+/>
+
+## Takeaway
+
+<Callout type="info" title="The newsletter is the cheapest channel we have">
+At 2,980 sessions and a conversion rate near 9%, the newsletter delivered roughly **260
+signups** — about 42% of the period's total — from an audience a fraction the size of
+organic. Doubling send cadence (within reason) is the highest-leverage experiment for next
+sprint. Pair it with a pass on `/pricing`, where high intent meets the lowest bounce on the site.
+</Callout>

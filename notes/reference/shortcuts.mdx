@@ -1,0 +1,106 @@
+---
+title: Keyboard Shortcuts
+description: A grouped reference of illustrative editor and app keyboard shortcuts.
+tags: [reference]
+date: "2026-06-27"
+icon: ⌨️
+order: 30
+---
+
+A quick-reference cheat sheet of keyboard shortcuts grouped by what they help you do: moving around, changing text, and reshaping the view. Keep it open in a side pane while you build muscle memory.
+
+<Callout type="note" title="These are examples">
+The bindings below are **illustrative defaults** chosen to be representative of a typical desktop editor. Your actual application may differ — always confirm against your app's command palette or settings. On macOS, read <Kbd>Ctrl</Kbd> as <Kbd>⌘</Kbd> and <Kbd>Alt</Kbd> as <Kbd>⌥</Kbd> unless noted.
+</Callout>
+
+## Navigation
+
+Move through files, symbols, and history without reaching for the mouse.
+
+| Shortcut | Action |
+| --- | --- |
+| <Kbd>Ctrl</Kbd> + <Kbd>K</Kbd> | Open the search / command palette |
+| <Kbd>Ctrl</Kbd> + <Kbd>P</Kbd> | Quick-open a file by name |
+| <Kbd>Ctrl</Kbd> + <Kbd>G</Kbd> | Go to line number |
+| <Kbd>Ctrl</Kbd> + <Kbd>T</Kbd> | Jump to a symbol across the workspace |
+| <Kbd>Ctrl</Kbd> + <Kbd>Shift</Kbd> + <Kbd>O</Kbd> | Jump to a symbol in the current file |
+| <Kbd>F12</Kbd> | Go to definition |
+| <Kbd>Alt</Kbd> + <Kbd>←</Kbd> | Navigate back |
+| <Kbd>Alt</Kbd> + <Kbd>→</Kbd> | Navigate forward |
+| <Kbd>Ctrl</Kbd> + <Kbd>Tab</Kbd> | Cycle through open editors |
+
+<Callout type="tip" title="Chord, don't memorize">
+Almost every navigation command lives behind <Kbd>Ctrl</Kbd> + <Kbd>K</Kbd>. If you only learn one shortcut, learn the palette — it surfaces the rest with searchable names.
+</Callout>
+
+## Editing
+
+The day-to-day text manipulation that pays back the learning cost fastest.
+
+| Shortcut | Action |
+| --- | --- |
+| <Kbd>Ctrl</Kbd> + <Kbd>X</Kbd> | Cut the current line (with no selection) |
+| <Kbd>Ctrl</Kbd> + <Kbd>C</Kbd> | Copy the current line (with no selection) |
+| <Kbd>Ctrl</Kbd> + <Kbd>/</Kbd> | Toggle line comment |
+| <Kbd>Alt</Kbd> + <Kbd>↑</Kbd> | Move line up |
+| <Kbd>Alt</Kbd> + <Kbd>↓</Kbd> | Move line down |
+| <Kbd>Shift</Kbd> + <Kbd>Alt</Kbd> + <Kbd>↓</Kbd> | Duplicate line downward |
+| <Kbd>Ctrl</Kbd> + <Kbd>D</Kbd> | Select next occurrence of the word |
+| <Kbd>Ctrl</Kbd> + <Kbd>Shift</Kbd> + <Kbd>L</Kbd> | Select all occurrences |
+| <Kbd>Ctrl</Kbd> + <Kbd>Space</Kbd> | Trigger autocomplete |
+| <Kbd>Ctrl</Kbd> + <Kbd>Z</Kbd> | Undo |
+| <Kbd>Ctrl</Kbd> + <Kbd>Shift</Kbd> + <Kbd>Z</Kbd> | Redo |
+
+A common multi-cursor flow: place the caret on a variable, tap <Kbd>Ctrl</Kbd> + <Kbd>D</Kbd> a few times to grab the next matches, then type the new name once for all of them.
+
+```ts
+// Select `count`, press Ctrl+D twice, rename to `total` everywhere at once
+let count = 0;
+count += items.length;
+return count;
+```
+
+<Callout type="warning" title="Watch your cursors">
+Multi-cursor edits apply your keystrokes to every caret simultaneously. Press <Kbd>Esc</Kbd> to collapse back to a single cursor before navigating away, or you may type into places you didn't intend.
+</Callout>
+
+## View
+
+Reshape the workspace — panels, splits, zoom, and focus.
+
+| Shortcut | Action |
+| --- | --- |
+| <Kbd>Ctrl</Kbd> + <Kbd>B</Kbd> | Toggle the sidebar |
+| <Kbd>Ctrl</Kbd> + <Kbd>`</Kbd> | Toggle the integrated terminal |
+| <Kbd>Ctrl</Kbd> + <Kbd>\\</Kbd> | Split the editor |
+| <Kbd>Ctrl</Kbd> + <Kbd>1</Kbd> | Focus the first editor group |
+| <Kbd>Ctrl</Kbd> + <Kbd>2</Kbd> | Focus the second editor group |
+| <Kbd>Ctrl</Kbd> + <Kbd>+</Kbd> | Zoom in |
+| <Kbd>Ctrl</Kbd> + <Kbd>-</Kbd> | Zoom out |
+| <Kbd>Ctrl</Kbd> + <Kbd>K</Kbd> <Kbd>Z</Kbd> | Enter Zen (distraction-free) mode |
+| <Kbd>F11</Kbd> | Toggle full screen |
+
+The last row is a **chord**: press <Kbd>Ctrl</Kbd> + <Kbd>K</Kbd>, release, then press <Kbd>Z</Kbd>. Chords let one prefix expand into a whole family of commands without exhausting single-key combos.
+
+## Learning order
+
+You don't have to absorb all of these at once. A sensible progression:
+
+<Steps>
+  <Step title="Anchor on the palette">
+    Bind <Kbd>Ctrl</Kbd> + <Kbd>K</Kbd> to memory first. Everything else is discoverable through it, so you never have to look anything up while you wait to learn it.
+  </Step>
+  <Step title="Add the high-frequency edits">
+    Line move, duplicate, and comment toggle fire dozens of times a day. They convert from deliberate to automatic within about a week.
+  </Step>
+  <Step title="Layer in navigation">
+    Once editing is reflexive, go-to-definition and back/forward let you read across files at the speed of thought.
+  </Step>
+  <Step title="Finish with view management">
+    Splits, panels, and Zen mode are comfort wins — learn them last, when the rest is already free.
+  </Step>
+</Steps>
+
+<Callout type="info" title="Make them yours">
+Treat this list as a starting point, not gospel. Rebind anything that fights your hands, and remove shortcuts you never use so the ones that matter are easier to recall.
+</Callout>

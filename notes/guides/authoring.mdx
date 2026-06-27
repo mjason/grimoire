@@ -1,0 +1,163 @@
+---
+title: Authoring Notes
+description: A practical guide to writing, organizing, and shipping Grimoire notes.
+tags: [guide, authoring]
+date: "2026-06-27"
+icon: ✍️
+order: 1
+---
+
+Everything in Grimoire starts as an `.mdx` file under `notes/`. This guide covers
+where notes live, what goes in the frontmatter, and the fastest path from a blank
+file to a rendered page.
+
+<Callout type="tip" title="The golden rule">
+Components are **globally available** — never write an `import` in a note. Built-ins
+like `<Chart/>` and `<DataTable/>` are always there, and anything you drop into
+`components/` is auto-registered by file name.
+</Callout>
+
+## Where notes live
+
+The `notes/` folder is the entire content tree. The structure on disk *is* the
+navigation:
+
+- Each **folder** becomes a **category** (e.g. `notes/guides/` → the "Guides" group).
+- Each **`.mdx` file** becomes a **note**, addressed as `category/slug`.
+- An **`index.mdx`** represents the folder itself — use it for a category landing page.
+
+```bash
+notes/
+├─ guides/
+│  ├─ index.mdx          # the "Guides" landing page
+│  ├─ getting-started.mdx
+│  └─ authoring.mdx      # this note → guides/authoring
+└─ reference/
+   └─ components.mdx     # reference/components
+```
+
+Slugs come straight from the file name, so `getting-started.mdx` is reachable at
+`guides/getting-started`. Rename the file, rename the route.
+
+## Frontmatter fields
+
+Every note opens with a YAML block between `---` fences. Only `title` is truly
+required, but a good note fills in most of these:
+
+| Field         | Type            | Notes                                              |
+| ------------- | --------------- | -------------------------------------------------- |
+| `title`       | string          | Shown as the page heading and in the sidebar.      |
+| `description` | string          | One line; used for previews and search.            |
+| `tags`        | string[]        | Lowercase words, e.g. `[guide, authoring]`.        |
+| `date`        | quoted string   | **Must** be quoted: `"YYYY-MM-DD"`.                 |
+| `icon`        | single emoji    | Appears beside the title in nav.                   |
+| `order`       | number          | Lower sorts first within its category (optional).  |
+| `draft`       | boolean         | `true` hides the note from the build (optional).   |
+
+<Callout type="warning" title="Quote your dates">
+`date: 2026-06-27` is parsed by YAML as a *date object*, not a string. Always wrap
+it in quotes — `date: "2026-06-27"` — or the build will complain.
+</Callout>
+
+A minimal, valid frontmatter block looks like this:
+
+```mdx
+---
+title: Authoring Notes
+description: A practical guide to writing Grimoire notes.
+tags: [guide, authoring]
+date: "2026-06-27"
+icon: ✍️
+order: 1
+---
+
+Your intro paragraph starts right here — no `# H1` needed,
+because the title comes from the frontmatter above.
+```
+
+## Create your first note
+
+<Steps>
+  <Step title="Scaffold the file">
+  Use the `new` script. Folders in the path are created automatically, so you can
+  nest a note into a new category in one shot:
+
+  ```bash
+  bun run new guides/my-first-note --title "My First Note" --tags guide,demo
+  ```
+  </Step>
+  <Step title="Fill in the frontmatter">
+  Open the generated file and complete `description`, pick an `icon`, and set an
+  `order` if you care where it lands in the sidebar.
+  </Step>
+  <Step title="Write the body">
+  Markdown is GitHub-flavoured — tables, task lists, and fenced code blocks all
+  work. Sprinkle in components wherever plain prose runs out of steam.
+  </Step>
+  <Step title="Preview live">
+  Start the dev server and your note hot-reloads as you save:
+
+  ```bash
+  bun run dev
+  ```
+
+  Hit <Kbd>Ctrl</Kbd> + <Kbd>R</Kbd> if you ever need a hard refresh.
+  </Step>
+</Steps>
+
+## CLI vs. by hand
+
+Both approaches produce the exact same file — pick whichever fits your flow.
+
+<Tabs>
+  <Tab label="Via CLI">
+  The scaffold script stamps out a starter note with today's date and a `Callout`
+  already in place:
+
+  ```bash
+  bun run new reference/keyboard-shortcuts \
+    --title "Keyboard Shortcuts" \
+    --tags reference,ux
+  ```
+
+  It refuses to overwrite an existing file, so it's safe to run repeatedly.
+  </Tab>
+  <Tab label="By hand">
+  Prefer a blank canvas? Create the file yourself and paste in the frontmatter:
+
+  ```bash
+  mkdir -p notes/reference
+  $EDITOR notes/reference/keyboard-shortcuts.mdx
+  ```
+
+  Then write the `---` block at the top and start typing. The dev server picks up
+  the new file the moment you save.
+  </Tab>
+</Tabs>
+
+## Bring your own components
+
+Any `.tsx` (or `.jsx`) file in `components/` is auto-registered under its export
+name and becomes usable in **every** note — no import, no manifest to edit. Today
+the project ships `StatCard`, which you can use directly:
+
+<StatCard label="Notes in this folder" value="3" delta="+1" trend="up" />
+
+To add your own, drop a `components/Highlight.tsx` exporting a `Highlight`
+component and write `<Highlight/>` anywhere. The dev server reloads and it's live.
+
+<Callout type="info" title="Naming">
+The component's exported name is what you write in MDX. Keep it
+`PascalCase` so it reads as a JSX element and doesn't collide with HTML tags.
+</Callout>
+
+## A quick checklist
+
+- [x] File lives under `notes/<category>/`
+- [x] Frontmatter has `title`, `description`, and a quoted `date`
+- [ ] `icon` and `order` set for nice sidebar placement
+- [ ] Body opens with a 1–2 sentence intro (no `# H1`)
+- [ ] Previewed with `bun run dev` before shipping
+
+That's the whole loop: scaffold, edit, preview, repeat. Write Markdown, reach for a
+component when it earns its place, and let the folder structure do the filing.

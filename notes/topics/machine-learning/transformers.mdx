@@ -1,0 +1,143 @@
+---
+title: "Transformers"
+description: "An intuitive tour of the transformer architecture: self-attention, multi-head attention, positional encodings, and the encoder/decoder split."
+tags: [ml, ai]
+date: "2026-06-27"
+icon: 🔬
+order: 2
+---
+
+The transformer is the architecture behind nearly every modern language and vision-language model. Its core trick is **attention**: instead of reading a sequence left-to-right, every token looks at every other token at once and decides what matters. This note builds the intuition piece by piece.
+
+## The one idea: attention
+
+Picture translating the sentence "the bank raised rates." To resolve whether *bank* means a riverbank or a financial institution, the model needs context from *rates*. Attention lets *bank* directly query the rest of the sentence and pull in the words that disambiguate it — no fixed window, no recurrence.
+
+Each token is projected into three vectors:
+
+- **Query (Q)** — what this token is looking for.
+- **Key (K)** — what this token offers to others.
+- **Value (V)** — the actual content passed along if it's attended to.
+
+A token's output is a weighted average of all Values, where the weights come from how well its Query matches each Key.
+
+### Scaled dot-product attention
+
+```python
+import numpy as np
+
+def attention(Q, K, V):
+    d_k = Q.shape[-1]
+    scores = Q @ K.transpose(-2, -1) / np.sqrt(d_k)  # similarity, scaled
+    weights = softmax(scores, axis=-1)               # rows sum to 1
+    return weights @ V                               # weighted blend of values
+```
+
+The division by `sqrt(d_k)` keeps the dot products from growing with dimension; without it the softmax saturates and gradients vanish.
+
+<Callout type="info" title="Why scale by √dₖ?">
+If Q and K have unit-variance components, their dot product over `d_k` dimensions has variance `d_k`. For `d_k = 64` that's a standard deviation of 8 — large enough that softmax collapses to a near one-hot vector and stops learning. Dividing by `√d_k = 8` restores unit variance and keeps the distribution soft.
+</Callout>
+
+## Multi-head attention
+
+One attention computation can only emphasize one kind of relationship at a time. **Multi-head attention** runs several attention operations in parallel, each with its own learned Q/K/V projections, then concatenates the results.
+
+<Steps>
+  <Step title="Split">
+    Project the input into `h` independent sets of Q, K, V — for a 512-dim model with 8 heads, each head works in a 64-dim subspace.
+  </Step>
+  <Step title="Attend">
+    Run scaled dot-product attention independently in every head. One head may track syntax, another long-range coreference, another local n-grams.
+  </Step>
+  <Step title="Recombine">
+    Concatenate the `h` outputs back to 512 dims and pass through a final linear layer that mixes the heads.
+  </Step>
+</Steps>
+
+## Positional encodings
+
+Attention is **permutation-invariant** — shuffle the tokens and the math is unchanged. That's a problem: "dog bites man" and "man bites dog" must differ. Positional encodings inject order back in.
+
+- **Sinusoidal** (original 2017 transformer): fixed sine/cosine waves of varying frequency added to embeddings. Needs no training and extrapolates to unseen lengths.
+- **Learned absolute**: a trainable vector per position (BERT, GPT-2). Simple but capped at the trained context length.
+- **Rotary (RoPE)**: rotates Q and K by a position-dependent angle so attention scores depend on *relative* distance. Now standard in LLaMA, Mistral, and most current LLMs.
+
+## Encoder, decoder, or both
+
+The original transformer had two stacks; modern systems usually pick one.
+
+<Tabs>
+  <Tab label="Encoder-only">
+    Bidirectional — every token sees the whole sequence. Great for understanding tasks: classification, retrieval, embeddings. Example: BERT.
+  </Tab>
+  <Tab label="Decoder-only">
+    Causal masking — each token only sees what came before, so the model can generate one token at a time. This is the GPT / LLaMA family and most chat models.
+  </Tab>
+  <Tab label="Encoder-decoder">
+    An encoder digests the input, a decoder generates the output while cross-attending to the encoded source. Natural fit for translation and summarization. Example: T5.
+  </Tab>
+</Tabs>
+
+## A full block
+
+Each layer wraps attention and a feed-forward network with residual connections and normalization:
+
+```python
+def transformer_block(x):
+    x = x + multi_head_attention(layer_norm(x))  # pre-norm residual
+    x = x + feed_forward(layer_norm(x))          # position-wise MLP
+    return x
+```
+
+The feed-forward sub-layer is just two linear layers with a nonlinearity (typically expanding 4×, e.g. 512 → 2048 → 512). Residuals keep gradients flowing through dozens of stacked blocks.
+
+## Comparing model families
+
+Different families trade off raw size, usable context, throughput, and output quality. Scores below are relative (0–10), normalized for illustration.
+
+<Chart
+  type="radar"
+  title="Model family trade-offs"
+  caption="Relative, illustrative scores across four axes (0 = low, 10 = high)."
+  height={360}
+  data={{
+    labels: ["Params", "Context", "Speed", "Quality"],
+    datasets: [
+      { label: "Small open (7B)", data: [3, 6, 9, 6] },
+      { label: "Mid open (70B)", data: [6, 7, 5, 8] },
+      { label: "Frontier (closed)", data: [9, 9, 3, 10] }
+    ]
+  }}
+/>
+
+Note the inverse relationship between **Speed** and the other axes: bigger models and longer contexts cost latency. Picking an architecture is mostly about where on this surface your application needs to live.
+
+## Notable models
+
+| Name      | Year | Params  |
+| --------- | ---- | ------- |
+| Transformer (orig.) | 2017 | 65M     |
+| BERT-Large | 2018 | 340M    |
+| GPT-3      | 2020 | 175B    |
+| T5-11B     | 2020 | 11B     |
+| LLaMA 2-70B | 2023 | 70B     |
+| Mixtral 8×7B | 2023 | 47B (12.9B active) |
+
+<Callout type="tip" title="Mental model">
+Strip away the jargon and a transformer is a stack of "look around, then think" blocks: attention gathers relevant context, the feed-forward layer processes it, and residual connections let the signal survive depth. Everything else — heads, positions, masking — is engineering around that loop.
+</Callout>
+
+## Check yourself
+
+<Quiz
+  question="Why divide the attention scores by √dₖ before the softmax?"
+  options={[
+    "To make the matrix multiplication faster",
+    "To keep dot-product variance stable so softmax doesn't saturate",
+    "To normalize the Value vectors to unit length",
+    "To add positional information to the scores"
+  ]}
+  answer={1}
+  explanation="Dot products over d_k dimensions have variance ~d_k; scaling by √d_k restores unit variance, keeping the softmax soft and gradients healthy."
+/>

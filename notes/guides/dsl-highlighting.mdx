@@ -1,0 +1,50 @@
+---
+title: DSL Highlighting
+description: Embedded syntax highlighting for the dark-magician factor DSL.
+tags: [guide, code, dsl]
+date: "2026-06-27"
+icon: 🪄
+order: 4
+---
+
+Grimoire highlights the **dark-magician DSL** — both as standalone `dmagic`
+blocks and embedded inside Python strings, where the factor DSL actually lives.
+
+## Inside Python
+
+The DSL is written inside `ctx.dsl(...)` calls. The sigil variables (`$close`),
+functions, keyword arguments and operators are highlighted **within** the string:
+
+```python title="factors.py" showLineNumbers {4}
+@factor(lookahead=0)
+def zscore(ctx, N=20):
+    ctx.result = ctx.dsl(
+        "($close - ts_mean($close, $N)) / ts_std($close, $N)",
+        close="收盘价_复权", N=N,
+    )
+```
+
+## Standalone `dmagic` blocks
+
+Write a pure expression in a `dmagic` fenced block:
+
+```dmagic
+分组求和($Ret_20 * $市值 * $是否龙头, 按=[$交易日期, $一级行业])
+/ 分组求和($市值 * $是否龙头, 按=[$交易日期, $一级行业])
+```
+
+## What gets highlighted
+
+| Token | Example |
+|-------|---------|
+| Sigil variable | `$close`, `$收盘价_复权` |
+| Built-in constant | `$nan`, `$inf` |
+| Function | `ts_mean(...)`, `分组求和(...)` |
+| Keyword argument | `按=`, `N=` |
+| Logical keyword | `and`, `or`, `not`, `且`, `或`, `非` |
+| Operator / number | `+ - * / ** //`, `0.1`, `1e-3` |
+
+<Callout type="tip">
+Any Python string containing a `$` sigil is treated as DSL, so intermediate
+columns set via `ctx.col["tr"] = ctx.dsl("…")` are highlighted too.
+</Callout>

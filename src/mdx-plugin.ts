@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
 import rehypeHighlight from "rehype-highlight";
 import { remarkCodeMeta, rehypeCodeLines } from "./code-plugins";
+import { rehypeDmagic } from "./dmagic";
 
 /**
  * A Bun bundler plugin that compiles `.mdx` files into Preact components.
@@ -30,6 +31,9 @@ export const mdxPlugin: BunPlugin = {
         rehypePlugins: [
           rehypeSlug,
           [rehypeHighlight, { detect: true, ignoreMissing: true }],
+          // Embed dark-magician DSL highlighting (whole `dmagic` blocks + DSL
+          // inside Python strings). Runs after highlight, before line splitting.
+          rehypeDmagic,
           // After highlighting: split into per-line spans for numbers + line highlight.
           rehypeCodeLines,
         ],

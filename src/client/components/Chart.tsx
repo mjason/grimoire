@@ -32,7 +32,7 @@ export function Chart({ type = "line", data, options, height = 320, title, capti
 
     instance.current = new ChartJS(canvas.current, {
       type,
-      data: withAccentColors(data),
+      data: withAccentColors(data, type),
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -79,20 +79,35 @@ const PALETTE = [
   "#0891b2", "#c026d3", "#65a30d", "#dc2626", "#0d9488",
 ];
 
-/** If datasets don't specify colors, apply a pleasant default palette. */
-function withAccentColors(data: ChartData): ChartData {
+/** If datasets don't specify colors, apply a pleasant default palette.
+ *  `type` is the chart type (pie/doughnut/polarArea colour each slice). */
+function withAccentColors(data: ChartData, type: ChartType): ChartData {
   const accent = readAccent();
-  const colors = [accent, ...PALETTE];
+  // Put the accent first, then the palette with any accent duplicate removed,
+  // so multi-series charts always get distinct colours.
+  const palette = [accent, ...PALETTE.filter((c) => c.toLowerCase() !== accent.toLowerCase())];
+  const sliced = ["pie", "doughnut", "polarArea"].includes(type as string);
+
   const datasets = data.datasets?.map((ds: any, i: number) => {
     if (ds.backgroundColor || ds.borderColor) return ds;
-    const c = colors[i % colors.length]!;
-    const multi = ["pie", "doughnut", "polarArea"].includes((ds.type as string) ?? "");
+    if (sliced) {
+      // One colour per slice; thin separators that read in light + dark.
+      return {
+        ...ds,
+        backgroundColor: palette,
+        borderColor: "rgba(255,255,255,0.85)",
+        borderWidth: 2,
+      };
+    }
+    const c = palette[i % palette.length]!;
+    const fill = type === "line" || type === "radar" ? `${c}22` : `${c}cc`;
     return {
       ...ds,
       borderColor: c,
-      backgroundColor: multi ? colors : `${c}33`,
+      backgroundColor: fill,
+      pointBackgroundColor: c,
       borderWidth: 2,
-      tension: 0.3,
+      tension: 0.35,
       pointRadius: 3,
       pointHoverRadius: 5,
     };

@@ -30,17 +30,16 @@ export function StatCard({
   const arrow = trend === "up" ? "▲" : trend === "down" ? "▼" : "→";
   return (
     <div class="not-prose rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-      <div class="text-sm font-medium text-neutral-500 dark:text-neutral-400">{label}</div>
-      <div class="mt-1 flex items-baseline gap-2">
-        <span class="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
-          {value}
-        </span>
-        {delta && (
-          <span class={`text-sm font-semibold ${color}`}>
-            {arrow} {delta}
-          </span>
-        )}
+      <div class="truncate text-sm font-medium text-neutral-500 dark:text-neutral-400">{label}</div>
+      <div class="mt-1 text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+        {value}
       </div>
+      {delta && (
+        <div class={`mt-1 flex items-center gap-1 whitespace-nowrap text-sm font-semibold ${color}`}>
+          <span aria-hidden>{arrow}</span>
+          {delta}
+        </div>
+      )}
       {children && <div class="mt-2 text-sm text-neutral-500">{children}</div>}
     </div>
   );

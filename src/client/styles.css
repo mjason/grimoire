@@ -141,6 +141,22 @@ body {
 .hljs-strong {
   font-weight: 700;
 }
+/* DSL sigil variables ($close) + operators */
+.hljs-variable,
+.hljs-template-variable {
+  color: #b3582d;
+  font-weight: 500;
+}
+.dark .hljs-variable,
+.dark .hljs-template-variable {
+  color: #ffb787;
+}
+.hljs-operator {
+  color: #5c6370;
+}
+.dark .hljs-operator {
+  color: #c9a3ff;
+}
 
 /* --- Code viewer: per-line rendering ------------------------------------ */
 /* Each line is a full-width block with its own horizontal padding (the <pre>

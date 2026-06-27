@@ -1,30 +1,59 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { ComponentChildren } from "preact";
 
+/** Copy text robustly: Clipboard API when available, else execCommand fallback
+ *  (needed in insecure contexts — e.g. opening the binary over a LAN IP). */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    /* fall through to legacy path */
+  }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "0";
+    ta.style.left = "0";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 function CopyButton({ targetRef, floating }: { targetRef: { current: HTMLElement | null }; floating?: boolean }) {
-  const [copied, setCopied] = useState(false);
+  const [state, setState] = useState<"idle" | "ok" | "err">("idle");
   const copy = async () => {
     const text = targetRef.current?.innerText ?? "";
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard may be unavailable */
-    }
+    const ok = await copyText(text);
+    setState(ok ? "ok" : "err");
+    setTimeout(() => setState("idle"), 1500);
   };
+  const copied = state === "ok";
+  const label = state === "ok" ? "Copied!" : state === "err" ? "Failed" : "Copy";
   const base =
     "rounded-md border border-neutral-300/60 bg-white/80 px-2 py-1 text-xs font-medium text-neutral-500 backdrop-blur transition hover:text-[var(--accent)] dark:border-neutral-700 dark:bg-neutral-800/80";
   if (floating) {
     return (
       <button onClick={copy} aria-label="Copy code" class={`absolute right-2.5 top-2.5 z-10 opacity-0 group-hover:opacity-100 ${base}`}>
-        {copied ? "Copied!" : "Copy"}
+        {label}
       </button>
     );
   }
   return (
-    <button onClick={copy} aria-label="Copy code" class={base}>
-      {copied ? "Copied!" : "Copy"}
+    <button onClick={copy} aria-label="Copy code" class={`${base} ${copied ? "!text-emerald-500" : ""}`}>
+      {label}
     </button>
   );
 }

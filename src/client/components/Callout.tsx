@@ -21,7 +21,7 @@ export interface CalloutProps {
 export function Callout({ type = "note", title, children }: CalloutProps) {
   const s = STYLES[type] ?? STYLES.note;
   return (
-    <div class={`my-5 rounded-xl border px-4 py-3 ${s.ring}`}>
+    <div class={`my-6 rounded-xl border px-4 py-3 ${s.ring}`}>
       <div class="mb-1 flex items-center gap-2 font-semibold">
         <span aria-hidden>{s.emoji}</span>
         <span class={s.icon}>{title ?? s.label}</span>

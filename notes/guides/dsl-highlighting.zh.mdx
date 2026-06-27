@@ -1,0 +1,50 @@
+---
+title: DSL 高亮
+description: 为 dark-magician 因子 DSL 提供内嵌语法高亮。
+tags: [指南, 代码, dsl]
+date: "2026-06-27"
+icon: 🪄
+order: 4
+---
+
+Grimoire 支持 **dark-magician DSL** 的语法高亮 —— 既可以作为独立的 `dmagic`
+代码块，也可以内嵌在 Python 字符串里（因子 DSL 实际就写在那里）。
+
+## 内嵌在 Python 中
+
+DSL 写在 `ctx.dsl(...)` 调用中。字符串**内部**的 `$` 变量（`$close`）、函数、
+关键字参数和运算符都会被高亮：
+
+```python title="factors.py" showLineNumbers {4}
+@factor(lookahead=0)
+def zscore(ctx, N=20):
+    ctx.result = ctx.dsl(
+        "($close - ts_mean($close, $N)) / ts_std($close, $N)",
+        close="收盘价_复权", N=N,
+    )
+```
+
+## 独立的 `dmagic` 代码块
+
+直接在 `dmagic` 代码块中写一个表达式：
+
+```dmagic
+分组求和($Ret_20 * $市值 * $是否龙头, 按=[$交易日期, $一级行业])
+/ 分组求和($市值 * $是否龙头, 按=[$交易日期, $一级行业])
+```
+
+## 会被高亮的内容
+
+| 类型 | 示例 |
+|------|------|
+| `$` 变量 | `$close`、`$收盘价_复权` |
+| 内置常量 | `$nan`、`$inf` |
+| 函数 | `ts_mean(...)`、`分组求和(...)` |
+| 关键字参数 | `按=`、`N=` |
+| 逻辑关键字 | `and`、`or`、`not`、`且`、`或`、`非` |
+| 运算符 / 数字 | `+ - * / ** //`、`0.1`、`1e-3` |
+
+<Callout type="tip">
+任何包含 `$` 符号的 Python 字符串都会被识别为 DSL，因此通过
+`ctx.col["tr"] = ctx.dsl("…")` 设置的中间列也会被高亮。
+</Callout>

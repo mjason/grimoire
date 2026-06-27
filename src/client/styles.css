@@ -143,32 +143,31 @@ body {
 }
 
 /* --- Code viewer: per-line rendering ------------------------------------ */
+/* Each line is a full-width block with its own horizontal padding (the <pre>
+   has none), so highlighted rows bleed cleanly to the edges without negative
+   margins — and the container's rounded corners stay crisp. */
 .code-line {
   display: block;
+  position: relative;
   min-height: 1.5em;
+  padding: 0 1.25rem;
 }
 .code-line[data-hl] {
   background: var(--accent-soft);
   box-shadow: inset 2px 0 0 var(--accent);
-  margin: 0 -1rem;
-  padding: 0 1rem;
 }
 code.with-line-numbers {
   counter-reset: grimoire-line;
 }
 code.with-line-numbers .code-line {
-  padding-left: 0.75rem;
-}
-code.with-line-numbers .code-line[data-hl] {
-  padding-left: 1.75rem;
+  padding-left: 3.5rem;
 }
 code.with-line-numbers .code-line::before {
   counter-increment: grimoire-line;
   content: counter(grimoire-line);
-  display: inline-block;
-  width: 1.75rem;
-  margin-left: -2.5rem;
-  margin-right: 0.75rem;
+  position: absolute;
+  left: 0;
+  width: 2.5rem;
   text-align: right;
   color: color-mix(in srgb, currentColor 35%, transparent);
   user-select: none;

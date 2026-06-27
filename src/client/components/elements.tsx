@@ -79,7 +79,7 @@ export function Pre({ children }: { children?: ComponentChildren; [k: string]: a
       )}
 
       <div ref={bodyRef} class="relative" style={collapsed ? { maxHeight: "480px", overflow: "hidden" } : undefined}>
-        <pre ref={preRef} class="!m-0 overflow-x-auto bg-transparent p-4 text-sm leading-relaxed">
+        <pre ref={preRef} class="!m-0 overflow-x-auto bg-transparent py-4 text-sm leading-relaxed">
           {children}
         </pre>
         {collapsible && collapsed && (

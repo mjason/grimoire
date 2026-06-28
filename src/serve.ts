@@ -41,8 +41,9 @@ const rel = (base: string, p: string | undefined, fallback: string) =>
   p ? (isAbsolute(p) ? p : resolve(base, p)) : resolve(base, fallback);
 
 const ROOT = resolve(arg("root") ?? process.cwd());
-const NOTES_DIR = rel(ROOT, arg("notes"), "notes");
-const COMPONENTS_DIR = rel(ROOT, arg("components"), "components");
+// notes/components dirs: --flag → config → default (resolved per rebuild).
+const CLI_NOTES = arg("notes");
+const CLI_COMPONENTS = arg("components");
 // CLI/env take precedence; config supplies the fallback (resolved after load).
 const CLI_PORT = arg("port") ?? process.env.PORT;
 const CLI_HOST = arg("host") ?? process.env.HOST;
@@ -79,6 +80,8 @@ interface State {
   notes: NoteEntry[];
   components: ComponentEntry[];
   css: string;
+  notesDir: string;
+  componentsDir: string;
 }
 let state: State;
 let cssCompiler: CssCompiler;
@@ -91,9 +94,12 @@ function locales(config: GrimoireConfig): string[] {
 
 async function rebuild(): Promise<void> {
   const config = await loadConfig();
+  // --flag overrides config overrides the default.
+  const notesDir = rel(ROOT, CLI_NOTES ?? config.notes, "notes");
+  const componentsDir = rel(ROOT, CLI_COMPONENTS ?? config.components, "components");
   const [notes, components] = await Promise.all([
-    scanNotes(NOTES_DIR, locales(config)),
-    scanComponents(COMPONENTS_DIR),
+    scanNotes(notesDir, locales(config)),
+    scanComponents(componentsDir),
   ]);
 
   // Candidate class names: engine (precomputed) + user notes/components sources.
@@ -111,7 +117,7 @@ async function rebuild(): Promise<void> {
 
   noteCache.clear();
   compCache.clear();
-  state = { config, notes, components, css };
+  state = { config, notes, components, css, notesDir, componentsDir };
 }
 
 function resolveNoteEntry(id: string, lang: string | null): NoteEntry | undefined {
@@ -401,7 +407,7 @@ function startWatching() {
       }
     }, 80);
   };
-  for (const dir of [NOTES_DIR, COMPONENTS_DIR]) {
+  for (const dir of [state.notesDir, state.componentsDir]) {
     if (existsSync(dir)) watch(dir, { recursive: true }, schedule);
   }
   const cfg = findConfig();

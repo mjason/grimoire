@@ -196,9 +196,10 @@ export default {
 | `--open` | — | Open the browser |
 | `--no-watch` | — | Disable hot reload |
 
-`--host`/`--port` can also be set in `config` (`host`, `port`); the flag / `HOST`
-/ `PORT` env var override it. Binding `0.0.0.0` prints the LAN URL so other devices
-can reach it.
+The directory names and bind address can also be set in `config` — `notes`,
+`components`, `host`, `port` — and the matching flag (or `HOST`/`PORT` env var)
+overrides it. So `config.json: { "notes": "content" }` serves `./content`, and
+`--notes other` still wins. Binding `0.0.0.0` prints the LAN URL.
 
 Copy the binary to any machine and run it against your content — that's the whole
 deployment. Cross-compile with `--target=` (see `bun run release:binaries`).

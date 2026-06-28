@@ -45,6 +45,12 @@ export interface GrimoireConfig {
   host?: string;
   /** Default port. The `--port` flag and `PORT` env var override this. */
   port?: number;
+  /** Notes directory, relative to the project root (or absolute). The `--notes`
+   *  flag overrides this. Default "notes". */
+  notes?: string;
+  /** Components directory, relative to the project root (or absolute). The
+   *  `--components` flag overrides this. Default "components". */
+  components?: string;
 }
 
 /** Frontmatter an author may place at the top of any `.mdx` note. */

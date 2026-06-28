@@ -15,11 +15,13 @@ function arg(name: string): string | undefined {
 const port = Number(arg("port") ?? process.env.PORT ?? 4321);
 const host = arg("host") ?? process.env.HOST ?? "localhost";
 
-// Assets are addressed with a ?v=<hash> query (see build.ts), so they're safe
-// to cache forever — a new build changes the URL.
+// This is a local tool that's rebuilt often, so never let the browser cache
+// anything — guarantees an updated binary always shows fresh content. (Assets
+// are also ?v=<hash> busted in the HTML as a second line of defence.) The cost
+// is re-fetching ~0.5 MB from embedded memory on a full page reload — instant.
 function asset(body: string, type: string): Response {
   return new Response(body, {
-    headers: { "content-type": type, "cache-control": "public, max-age=31536000, immutable" },
+    headers: { "content-type": type, "cache-control": "no-store" },
   });
 }
 

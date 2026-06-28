@@ -38,7 +38,9 @@ export function resolveNotes(rawNotes: RawNote[], defaultLocale = "en"): NoteMet
     return {
       id: n.id,
       segments: n.segments,
-      lang: n.lang ?? fm.lang ?? defaultLocale,
+      // The filename suffix (n.lang) is authoritative — matches the server's
+      // resolveNoteEntry. (Frontmatter `lang` is intentionally not used here.)
+      lang: n.lang ?? defaultLocale,
       title: fm.title ?? fallback,
       description: fm.description,
       tags: Array.isArray(fm.tags) ? fm.tags.map(String) : [],

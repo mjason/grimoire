@@ -180,7 +180,14 @@ function indexHtml(config: GrimoireConfig): string {
 }
 
 // --- Responses ---------------------------------------------------------------
-const NOCACHE = { "cache-control": "no-store" };
+const NOCACHE = { "cache-control": "no-store", "x-content-type-options": "nosniff" };
+function safeDecode(s: string): string | null {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return null;
+  }
+}
 const txt = (body: string, type: string) =>
   new Response(body, { headers: { "content-type": type, ...NOCACHE } });
 const json = (obj: unknown) =>
@@ -192,7 +199,7 @@ function notifyReload() {
     try {
       c.enqueue(`data: reload\n\n`);
     } catch {
-      /* gone */
+      sseClients.delete(c); // evict a controller whose connection dropped
     }
   }
 }
@@ -208,6 +215,17 @@ async function main() {
   const host = CLI_HOST ?? state.config.host ?? "localhost";
   const port = Number(CLI_PORT ?? state.config.port ?? 4321);
 
+  // DNS-rebinding guard: honor only requests whose Host is a local address.
+  // Permissive — any IP literal, localhost, *.local, or the bound host — so it
+  // never blocks normal localhost/LAN use but rejects public-domain rebinding.
+  const allowedHosts = new Set([host.toLowerCase(), "localhost"]);
+  const hostAllowed = (h: string) =>
+    !h ||
+    allowedHosts.has(h) ||
+    /^[\d.]+$/.test(h) || // ipv4 literal
+    h.includes(":") || h.startsWith("[") || // ipv6 literal
+    h.endsWith(".local") || h.endsWith(".localhost");
+
   const server = Bun.serve({
     port,
     hostname: host,
@@ -215,13 +233,27 @@ async function main() {
       const url = new URL(req.url);
       const p = url.pathname;
 
+      const reqHost = (req.headers.get("host") ?? "").split(":")[0]!.toLowerCase();
+      if (!hostAllowed(reqHost)) return new Response("forbidden host", { status: 403 });
+
       if (p === "/app.js") return txt(engineJs, "text/javascript; charset=utf-8");
       if (p === "/app.css") return txt(state.css, "text/css; charset=utf-8");
       if (p === "/healthz") return new Response("ok");
 
       if (p === "/api/manifest") {
+        const c = state.config;
         return json({
-          config: state.config,
+          // Only the client-facing fields — never echo the whole config (host,
+          // port, or anything a user adds later) to every visitor.
+          config: {
+            title: c.title,
+            description: c.description,
+            author: c.author,
+            theme: c.theme,
+            categoryOrder: c.categoryOrder,
+            footer: c.footer,
+            i18n: c.i18n,
+          },
           notes: state.notes.map((n) => ({
             id: n.id,
             segments: n.segments,
@@ -233,7 +265,8 @@ async function main() {
       }
 
       if (p.startsWith("/api/note/")) {
-        const id = decodeURIComponent(p.slice("/api/note/".length));
+        const id = safeDecode(p.slice("/api/note/".length));
+        if (id == null) return new Response("bad request", { status: 400 });
         const entry = resolveNoteEntry(id, url.searchParams.get("lang"));
         if (!entry) return new Response(`note not found: ${id}`, { status: 404 });
         try {
@@ -249,7 +282,8 @@ async function main() {
       }
 
       if (p.startsWith("/_component/")) {
-        const urlPath = decodeURIComponent(p.slice("/_component/".length));
+        const urlPath = safeDecode(p.slice("/_component/".length));
+        if (urlPath == null) return new Response("bad request", { status: 400 });
         const comp = state.components.find((c) => c.url === urlPath);
         if (!comp) return new Response("component not found", { status: 404 });
         try {

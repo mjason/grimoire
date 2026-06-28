@@ -220,13 +220,21 @@ function NoteLinks({
             key={n.id}
             href={noteHref(n.id)}
             onClick={onNavigate}
-            class={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 no-underline transition ${
+            class={`relative flex items-center gap-2.5 rounded-lg py-2 pl-3 pr-3 no-underline transition ${
               active
-                ? "accent-bg font-medium shadow-sm"
-                : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                ? "bg-[var(--accent-soft)] font-medium text-[var(--accent)]"
+                : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800/70 dark:hover:text-neutral-100"
             }`}
           >
-            {n.icon && <span class="text-base leading-none">{n.icon}</span>}
+            {active && (
+              <span
+                aria-hidden
+                class="absolute inset-y-1.5 left-0 w-[3px] rounded-full bg-[var(--accent)]"
+              />
+            )}
+            <span class="grid w-5 shrink-0 place-items-center text-[0.95rem] leading-none">
+              {n.icon}
+            </span>
             <span class="truncate">{n.title}</span>
           </a>
         );

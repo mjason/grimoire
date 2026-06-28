@@ -70,6 +70,26 @@ body {
 }
 .prose :where(table) {
   @apply overflow-hidden;
+  font-size: 0.925em;
+}
+/* Generous, even cell padding — the `table` element selector raises specificity
+   above the typography plugin's :where() rules (which also strip the first/last
+   cell's horizontal padding, undesirable inside our bordered wrapper). */
+.prose table th,
+.prose table td {
+  padding: 0.625rem 1rem;
+  vertical-align: top;
+}
+.prose table th:first-child,
+.prose table td:first-child {
+  padding-inline-start: 1rem;
+}
+.prose table th:last-child,
+.prose table td:last-child {
+  padding-inline-end: 1rem;
+}
+.prose table thead th {
+  background-color: color-mix(in srgb, currentColor 4%, transparent);
 }
 
 /* --- highlight.js (github-style, theme-aware) ---------------------------- */

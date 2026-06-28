@@ -65,9 +65,10 @@ body {
 .prose :where(code):not(pre code) {
   font-weight: 600;
 }
-.prose :where(pre) {
-  @apply rounded-xl border border-neutral-200/70 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900;
-}
+/* Note: no `.prose pre` styling — every code block renders through the <Pre>
+   code-viewer component, which owns its border/background/rounding. Styling the
+   raw <pre> here would give it a second border + rounded corners inside the
+   viewer's container (a weird inner rounding under the filename header). */
 .prose :where(table) {
   @apply overflow-hidden;
   font-size: 0.925em;

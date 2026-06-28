@@ -56,7 +56,7 @@ async function rebuild(reason: string) {
 async function serveAsset(path: string, type: string): Promise<Response> {
   const file = Bun.file(join(DIST_DIR, path));
   if (!(await file.exists())) return new Response("not found", { status: 404 });
-  return new Response(file, { headers: { "content-type": type } });
+  return new Response(file, { headers: { "content-type": type, "cache-control": "no-store" } });
 }
 
 async function main() {
@@ -96,7 +96,9 @@ async function main() {
       if (!existsSync(htmlPath)) return new Response("building…", { status: 503 });
       let html = await readFile(htmlPath, "utf8");
       html = html.replace("</body>", `${LIVERELOAD}</body>`);
-      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+      return new Response(html, {
+        headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+      });
     },
   });
 

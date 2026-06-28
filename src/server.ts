@@ -15,9 +15,11 @@ function arg(name: string): string | undefined {
 const port = Number(arg("port") ?? process.env.PORT ?? 4321);
 const host = arg("host") ?? process.env.HOST ?? "localhost";
 
+// Assets are addressed with a ?v=<hash> query (see build.ts), so they're safe
+// to cache forever — a new build changes the URL.
 function asset(body: string, type: string): Response {
   return new Response(body, {
-    headers: { "content-type": type, "cache-control": "public, max-age=3600" },
+    headers: { "content-type": type, "cache-control": "public, max-age=31536000, immutable" },
   });
 }
 
@@ -35,8 +37,12 @@ const server = Bun.serve({
         return new Response("ok");
       default:
         // SPA fallback: every other route serves the shell (hash routing).
+        // Never cache the shell, so the latest hashed asset URLs are always used.
         return new Response(indexHtml, {
-          headers: { "content-type": "text/html; charset=utf-8" },
+          headers: {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-cache, no-store, must-revalidate",
+          },
         });
     }
   },

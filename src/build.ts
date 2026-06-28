@@ -43,7 +43,7 @@ const ACCENTS: Record<string, [string, string]> = {
   fuchsia: ["#c026d3", "#ffffff"],
 };
 
-function htmlShell(config: GrimoireConfig): string {
+function htmlShell(config: GrimoireConfig, hash: string): string {
   const title = escapeHtml(config.title ?? "Grimoire");
   const desc = escapeHtml(config.description ?? "");
   const mode = config.theme?.defaultMode ?? "system";
@@ -60,13 +60,13 @@ function htmlShell(config: GrimoireConfig): string {
 <title>${title}</title>
 <meta name="description" content="${desc}" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%93%3C/text%3E%3C/svg%3E" />
-<link rel="stylesheet" href="/app.css" />
+<link rel="stylesheet" href="/app.css?v=${hash}" />
 <style>${accentStyle}</style>
 <script>${boot}</script>
 </head>
 <body>
 <div id="app"></div>
-<script type="module" src="/app.js"></script>
+<script type="module" src="/app.js?v=${hash}"></script>
 </body>
 </html>
 `;
@@ -134,7 +134,15 @@ export async function build(): Promise<void> {
 
   const bytes = await bundleClient();
   await runTailwind();
-  await writeFile(join(DIST_DIR, "index.html"), htmlShell(config), "utf8");
+
+  // Content hash over the built assets → cache-busting query in the HTML, so an
+  // updated binary never serves a stale app.js/app.css from the browser cache.
+  const hasher = new Bun.CryptoHasher("sha256");
+  hasher.update(await Bun.file(join(DIST_DIR, "app.js")).text());
+  hasher.update(await Bun.file(join(DIST_DIR, "app.css")).text());
+  const assetHash = hasher.digest("hex").slice(0, 12);
+
+  await writeFile(join(DIST_DIR, "index.html"), htmlShell(config, assetHash), "utf8");
 
   const ms = Math.round(performance.now() - started);
   const kb = (bytes / 1024).toFixed(0);

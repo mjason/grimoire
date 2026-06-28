@@ -135,17 +135,17 @@ function Sidebar(props: {
           <>
             <TreeView node={tree} route={route} onNavigate={onNavigate} depth={0} />
             {tags.length > 0 && (
-              <div class="mt-6">
-                <div class="px-2 pb-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-400">
+              <div class="mt-8 border-t border-neutral-200/70 pt-5 dark:border-neutral-800">
+                <div class="px-2.5 pb-2.5 text-[0.7rem] font-semibold uppercase tracking-wider text-neutral-400">
                   {t("nav.tags")}
                 </div>
-                <div class="flex flex-wrap gap-1.5 px-2">
+                <div class="flex flex-wrap gap-1.5 px-2.5">
                   {tags.map((t) => (
                     <a
                       key={t.tag}
                       href={hrefFor({ kind: "tag", tag: t.tag })}
                       onClick={onNavigate}
-                      class={`rounded-full border px-2 py-0.5 text-xs no-underline transition ${
+                      class={`rounded-full border px-2.5 py-1 text-xs no-underline transition ${
                         route.kind === "tag" && route.tag === t.tag
                           ? "accent-bg border-transparent"
                           : "border-neutral-200 text-neutral-600 hover:border-[var(--accent)] hover:text-[var(--accent)] dark:border-neutral-700 dark:text-neutral-300"
@@ -185,9 +185,9 @@ function TreeView({
   return (
     <div class={depth > 0 ? "ml-3 border-l border-neutral-200 pl-2 dark:border-neutral-800" : ""}>
       {node.children.map((child) => (
-        <div key={child.path} class="mt-1">
+        <div key={child.path} class="mt-1 first:mt-0">
           {depth >= 0 && (
-            <div class="px-2 pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-neutral-400">
+            <div class="px-2.5 pt-5 pb-2 text-[0.7rem] font-semibold uppercase tracking-wider text-neutral-400">
               {child.label}
             </div>
           )}
@@ -220,9 +220,9 @@ function NoteLinks({
             key={n.id}
             href={noteHref(n.id)}
             onClick={onNavigate}
-            class={`flex items-center gap-2 rounded-lg px-2 py-1.5 no-underline transition ${
+            class={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 no-underline transition ${
               active
-                ? "accent-bg font-medium"
+                ? "accent-bg font-medium shadow-sm"
                 : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
             }`}
           >

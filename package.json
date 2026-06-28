@@ -50,6 +50,7 @@
   "devDependencies": {
     "@tailwindcss/typography": "^0.5",
     "@types/bun": "^1.2.0",
+    "playwright-core": "^1.61",
     "tailwindcss": "^4",
     "typescript": "^5.7.0"
   }

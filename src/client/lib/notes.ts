@@ -1,7 +1,6 @@
-import { rawNotes } from "../generated/manifest";
 import type { NoteMeta } from "../../types";
 
-interface RawNote {
+export interface RawNote {
   id: string;
   segments: string[];
   lang: string | null;
@@ -30,9 +29,9 @@ function humanize(slug: string): string {
     .join(" ");
 }
 
-/** Resolve the raw generated note list into fully-typed NoteMeta (all languages). */
-export function resolveNotes(defaultLocale = "en"): NoteMeta[] {
-  const notes = (rawNotes as RawNote[]).map((n): NoteMeta => {
+/** Resolve a raw note list into fully-typed NoteMeta (all languages). */
+export function resolveNotes(rawNotes: RawNote[], defaultLocale = "en"): NoteMeta[] {
+  const notes = rawNotes.map((n): NoteMeta => {
     const mod = n.module;
     const fm = (mod.frontmatter ?? {}) as Record<string, any>;
     const fallback = humanize(n.id.split("/").pop() || "untitled");

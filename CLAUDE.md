@@ -1,9 +1,9 @@
 # Grimoire — guide for AI authors
 
-This repo is an MDX note system that compiles to a single binary. As an AI, you
-mostly do two things: **write notes** (`.mdx` in `notes/`) and **add components**
-(`.tsx` in `components/`). This file is the contract — follow it and the build
-stays green.
+Grimoire is a **runtime engine**: a single binary that reads a project (`config` +
+`notes/` + `components/`) from disk and serves it, compiling MDX and components on
+the fly. As an AI, you mostly do two things: **write notes** (`.mdx` in `notes/`)
+and **add components** (`.tsx` in `components/`). This file is the contract.
 
 ## Golden rules
 
@@ -12,8 +12,9 @@ stays green.
 - **Folders are categories.** `notes/data/sales.mdx` → category "data", slug
   `data/sales`. An `index.mdx` represents its folder.
 - **Frontmatter is YAML** between `---` fences. Always quote dates: `date: "2026-06-27"`.
-- After editing, run `bun run build` then `bun run verify` to confirm everything
-  renders. `bun run compile` produces the binary `./grimoire`.
+- The engine **hot-reloads** — run `bun run dev`, edit a note, and the page refreshes.
+  Run `bun run verify` to confirm every note compiles. No rebuild needed to see edits;
+  `bun run compile` only rebuilds the engine binary itself.
 
 ## Frontmatter fields
 
@@ -120,17 +121,18 @@ export function MyThing({ children }: { children?: ComponentChildren }) {
 ```
 
 - Every **named export** is auto-registered (the file's PascalCase name maps to a
-  default export, if any).
-- Be **SSR-safe**: don't touch `window`/`document`/`localStorage` at module top level
-  or during render — only inside `useEffect` or event handlers (`bun run verify`
-  string-renders every note and will catch this).
+  default export, if any). Components are bundled per-file at runtime; import
+  `preact`, `preact/hooks`, `@mdx-js/preact` freely — they resolve to the engine.
+- Don't touch `window`/`document`/`localStorage` during render — only inside
+  `useEffect` or event handlers.
 - Style with Tailwind; use `var(--accent)` (e.g. `text-[var(--accent)]`) for the
-  theme color; support light **and** dark mode (`dark:` variants).
+  theme color; support light **and** dark mode (`dark:` variants). The server scans
+  your files for class names, so utilities you use are always generated.
 
 ## Where things are
 
-- `config.ts` — site title, accent, category order.
+- `config.ts` / `config.json` — site title, accent, category order.
 - `notes/` — your notes (this is where most work happens).
 - `components/` — your components.
-- `src/` — the engine. `build.ts`, `server.ts`, `client/`. Touch only to extend the
-  framework itself.
+- `src/` — the engine (`serve.ts`, `engine.ts`, `runtime/`, `client/`). Touch only
+  to extend the framework itself; rebuild with `bun run compile`.

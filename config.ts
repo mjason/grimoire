@@ -1,9 +1,6 @@
-import { defineConfig } from "./src/config";
-
-/**
- * Site-wide configuration. Edit freely — the build picks it up automatically.
- */
-export default defineConfig({
+// Site configuration. A plain default export so the engine can load it at
+// runtime from any project directory. Edit freely — the server hot-reloads it.
+export default {
   title: "My Grimoire",
   description: "An AI-authored notebook of charts, tables and ideas.",
   author: "Claude",
@@ -22,4 +19,4 @@ export default defineConfig({
       { code: "zh", label: "中文" },
     ],
   },
-});
+};

@@ -1,4 +1,3 @@
-import { userComponents } from "../generated/manifest";
 import { Chart } from "./Chart";
 import { DataTable } from "./DataTable";
 import { Callout } from "./Callout";
@@ -7,14 +6,11 @@ import { Steps, Step, Card, CardGrid, Badge, Kbd } from "./Layout";
 import { Pre, H2, H3, H4, A, Table } from "./elements";
 
 /**
- * The component map handed to every MDX note via <MDXProvider>.
- *
- * Order matters: built-in components first, then user components from
- * `components/`, so authors can override or extend anything they like.
- * Lowercase keys (a, h2, pre, table) override the default HTML elements that
- * markdown produces.
+ * Built-in components + the HTML element overrides (a, pre, h2…, table) handed
+ * to every MDX note. User components from the project's `components/` directory
+ * are loaded at runtime and merged on top (so they can override these).
  */
-export const mdxComponents: Record<string, any> = {
+export const builtinComponents: Record<string, any> = {
   // HTML element overrides
   a: A,
   pre: Pre,
@@ -34,6 +30,4 @@ export const mdxComponents: Record<string, any> = {
   CardGrid,
   Badge,
   Kbd,
-  // User components (components/) — registered last so they win on conflicts.
-  ...userComponents,
 };

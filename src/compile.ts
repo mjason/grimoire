@@ -7,8 +7,8 @@ import { existsSync } from "node:fs";
  * binary using `bun build --compile`. Run `bun run build` first.
  */
 async function compile() {
-  if (!existsSync(join(DIST_DIR, "app.js"))) {
-    console.error("✗ dist/ is empty — run `bun run build` first.");
+  if (!existsSync(join(DIST_DIR, "engine", "app.js"))) {
+    console.error("✗ engine not built — run `bun run engine` first.");
     process.exit(1);
   }
 
@@ -22,7 +22,7 @@ async function compile() {
     "build",
     "--compile",
     "--minify",
-    join(ROOT_DIR, "src", "server.ts"),
+    join(ROOT_DIR, "src", "serve.ts"),
     "--outfile",
     outfile,
   ];

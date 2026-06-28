@@ -3,7 +3,7 @@
 import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { ROOT_DIR } from "./paths";
-import { build } from "./build";
+import { buildEngine } from "./engine";
 
 const RELEASE_DIR = join(ROOT_DIR, "release");
 
@@ -16,7 +16,7 @@ const TARGETS: { target: string; out: string }[] = [
 ];
 
 async function main() {
-  await build();
+  await buildEngine();
 
   await rm(RELEASE_DIR, { recursive: true, force: true });
   await mkdir(RELEASE_DIR, { recursive: true });
@@ -33,7 +33,7 @@ async function main() {
         "--compile",
         "--minify",
         `--target=${target}`,
-        join(ROOT_DIR, "src", "server.ts"),
+        join(ROOT_DIR, "src", "serve.ts"),
         "--outfile",
         outfile,
       ],

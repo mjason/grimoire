@@ -1,55 +1,55 @@
-// SSR smoke-test: compile + render every note to a string with the real
-// component map. Catches MDX wiring errors, undefined components and crashes
-// in component render paths — without needing a browser. (Effects/canvas are
-// skipped during string rendering, which is exactly what we want here.)
-import { mdxPlugin } from "./mdx-plugin";
-import { writeManifest } from "./manifest";
-import { CONFIG_FILE } from "./paths";
+// Compile every note in ./notes with the runtime MDX compiler and report any
+// that fail — a fast pre-flight check (no browser, no engine build needed).
+import { resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { scanNotes, compileNote } from "./runtime/content";
 
-Bun.plugin(mdxPlugin);
-
-const RED = "\x1b[31m";
 const GREEN = "\x1b[32m";
+const RED = "\x1b[31m";
 const DIM = "\x1b[2m";
 const RESET = "\x1b[0m";
 
-async function main() {
-  let locales: string[] = [];
-  try {
-    const cfg = (await import(CONFIG_FILE)).default;
-    locales = (cfg?.i18n?.locales ?? []).map((l: { code: string }) => l.code);
-  } catch {
-    /* no config / no i18n */
+async function loadLocales(root: string): Promise<string[]> {
+  for (const name of ["config.json", "config.ts", "config.js", "config.mjs"]) {
+    const p = resolve(root, name);
+    if (!existsSync(p)) continue;
+    try {
+      const cfg = name.endsWith(".json")
+        ? JSON.parse(await readFile(p, "utf8"))
+        : (await import(`${p}?t=${Date.now()}`)).default;
+      return (cfg?.i18n?.locales ?? []).map((l: { code: string }) => l.code);
+    } catch {
+      return [];
+    }
   }
-  await writeManifest(locales);
+  return [];
+}
 
-  // Dynamic imports so they evaluate *after* the MDX plugin is registered.
-  const { h } = await import("preact");
-  const { renderToString } = await import("preact-render-to-string");
-  const { mdxComponents } = await import("./client/components");
-  const { resolveNotes } = await import("./client/lib/notes");
+async function main() {
+  const root = resolve(process.argv[2] ?? process.cwd());
+  const notesDir = resolve(root, "notes");
+  const locales = await loadLocales(root);
+  const notes = await scanNotes(notesDir, locales);
 
-  const notes = resolveNotes();
   let failures = 0;
-
   for (const note of notes) {
     try {
-      const html = renderToString(h(note.Component as any, { components: mdxComponents }));
-      if (!html || html.length < 1) throw new Error("rendered empty output");
-      process.stdout.write(`${GREEN}✓${RESET} ${note.id} ${DIM}(${html.length} chars)${RESET}\n`);
+      const body = await compileNote(note.file);
+      if (!body || body.length < 1) throw new Error("empty output");
+      process.stdout.write(`${GREEN}✓${RESET} ${note.id}${note.lang ? ` ${DIM}[${note.lang}]${RESET}` : ""}\n`);
     } catch (err) {
       failures++;
       process.stdout.write(`${RED}✗ ${note.id}${RESET}\n  ${(err as Error).message}\n`);
     }
   }
-
   process.stdout.write(
-    `\n${failures === 0 ? GREEN + "✓" : RED + "✗"} ${notes.length - failures}/${notes.length} notes rendered${RESET}\n`,
+    `\n${failures === 0 ? GREEN + "✓" : RED + "✗"} ${notes.length - failures}/${notes.length} notes compiled${RESET}\n`,
   );
   process.exit(failures === 0 ? 0 : 1);
 }
 
-main().catch((err) => {
-  console.error(err);
+main().catch((e) => {
+  console.error(e);
   process.exit(1);
 });

@@ -8,6 +8,7 @@ import {
   notesForLocale,
   resolveNotes,
   searchNotes,
+  type RawNote,
   type TreeNode,
 } from "./lib/notes";
 import { hrefFor, noteHref, useRoute, type Route } from "./lib/router";
@@ -15,9 +16,9 @@ import { ThemeToggle } from "./components/ThemeToggle";
 import { LanguageSwitcher } from "./components/LanguageSwitcher";
 import { useLocale } from "./i18n";
 
-export function App({ config }: { config: GrimoireConfig }) {
+export function App({ config, rawNotes }: { config: GrimoireConfig; rawNotes: RawNote[] }) {
   const { locale, defaultLocale } = useLocale();
-  const allNotes = useMemo(() => resolveNotes(defaultLocale), [defaultLocale]);
+  const allNotes = useMemo(() => resolveNotes(rawNotes, defaultLocale), [rawNotes, defaultLocale]);
   // One note per slug, chosen for the active language (with default fallback).
   const notes = useMemo(
     () => notesForLocale(allNotes, locale, defaultLocale),

@@ -165,9 +165,10 @@ Components are [Preact](https://preactjs.com) components styled with Tailwind. U
 `preact/hooks` for interactivity, and the `var(--accent)` CSS variable for the theme
 color.
 
-## Configuration — `config.ts` (or `config.json`)
+## Configuration — `config.ts` / `config.json`
 
-A plain default export, loaded at runtime (so it can live in any project dir):
+A plain default export, loaded at runtime (so it can live in any project dir).
+`.json`/`.jsonc` config supports comments and trailing commas:
 
 ```ts
 export default {

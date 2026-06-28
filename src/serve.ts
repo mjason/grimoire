@@ -52,19 +52,59 @@ const WATCH = !flag("no-watch");
 function findConfig(): string | undefined {
   const explicit = arg("config");
   if (explicit) return rel(ROOT, explicit, "");
-  for (const name of ["config.ts", "config.js", "config.mjs", "config.json"]) {
+  for (const name of ["config.ts", "config.js", "config.mjs", "config.json", "config.jsonc"]) {
     const p = join(ROOT, name);
     if (existsSync(p)) return p;
   }
   return undefined;
 }
 
+/** Parse JSON with comments + trailing commas (jsonc). String contents are
+ *  preserved, so `//` or `/*` inside a value isn't mistaken for a comment. */
+function parseJsonc(text: string): unknown {
+  let out = "";
+  let inStr = false;
+  let line = false;
+  let block = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]!;
+    const n = text[i + 1];
+    if (line) {
+      if (c === "\n") {
+        line = false;
+        out += c;
+      }
+    } else if (block) {
+      if (c === "*" && n === "/") {
+        block = false;
+        i++;
+      }
+    } else if (inStr) {
+      out += c;
+      if (c === "\\") out += text[++i] ?? "";
+      else if (c === '"') inStr = false;
+    } else if (c === '"') {
+      inStr = true;
+      out += c;
+    } else if (c === "/" && n === "/") {
+      line = true;
+      i++;
+    } else if (c === "/" && n === "*") {
+      block = true;
+      i++;
+    } else {
+      out += c;
+    }
+  }
+  return JSON.parse(out.replace(/,(\s*[}\]])/g, "$1"));
+}
+
 async function loadConfig(): Promise<GrimoireConfig> {
   const file = findConfig();
   if (!file || !existsSync(file)) return DEFAULT_CONFIG;
   try {
-    if (file.endsWith(".json")) {
-      return { ...DEFAULT_CONFIG, ...JSON.parse(await readFile(file, "utf8")) };
+    if (file.endsWith(".json") || file.endsWith(".jsonc")) {
+      return { ...DEFAULT_CONFIG, ...(parseJsonc(await readFile(file, "utf8")) as object) };
     }
     const mod = await import(`${file}?t=${Date.now()}`);
     return { ...DEFAULT_CONFIG, ...(mod.default ?? mod.config ?? {}) };

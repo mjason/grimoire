@@ -43,9 +43,11 @@ export async function createCssCompiler(
   return compiler as unknown as CssCompiler;
 }
 
-// Token shape that covers Tailwind utilities incl. variants (`dark:`, `hover:`),
-// fractions (`w-1/2`), arbitrary values (`text-[var(--accent)]`, `p-[3px]`).
-const CANDIDATE_RE = /-?(?:[a-zA-Z@][a-zA-Z0-9_-]*|\[[^\]\s]*\])(?:[:/](?:[a-zA-Z0-9_.%#-]+|\[[^\]\s]*\]))*!?/g;
+// Token shape that covers Tailwind utilities incl. variants (`dark:`, `hover:`,
+// `[&>*]:`), decimals (`px-2.5`), fractions (`w-1/2`), opacity (`bg-black/50`),
+// important (`p-4!`), negatives (`-mt-1`), and arbitrary values & properties
+// (`text-[var(--accent)]`, `-left-[34px]`, `[mask:url(x)]`).
+const CANDIDATE_RE = /-?(?:\[[^\]]+\]|[a-zA-Z0-9])(?:[a-zA-Z0-9_.%/:!#-]|\[[^\]]+\])*/g;
 
 /** Extract candidate class names from arbitrary source text. */
 export function extractCandidates(text: string, into: Set<string> = new Set()): Set<string> {

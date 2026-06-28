@@ -191,9 +191,14 @@ export default {
 | `--notes <dir>` | `<root>/notes` | Notes directory |
 | `--components <dir>` | `<root>/components` | Components directory |
 | `--config <file>` | `<root>/config.*` | Config file |
+| `--host <ip>` | `localhost` | Interface to bind (`0.0.0.0` for LAN access) |
 | `--port <n>` | `4321` | Port |
 | `--open` | — | Open the browser |
 | `--no-watch` | — | Disable hot reload |
+
+`--host`/`--port` can also be set in `config` (`host`, `port`); the flag / `HOST`
+/ `PORT` env var override it. Binding `0.0.0.0` prints the LAN URL so other devices
+can reach it.
 
 Copy the binary to any machine and run it against your content — that's the whole
 deployment. Cross-compile with `--target=` (see `bun run release:binaries`).

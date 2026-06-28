@@ -5,6 +5,7 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { watch } from "node:fs";
+import { networkInterfaces } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 import { DEFAULT_CONFIG } from "./config";
 import type { GrimoireConfig } from "./types";
@@ -40,8 +41,9 @@ const rel = (base: string, p: string | undefined, fallback: string) =>
 const ROOT = resolve(arg("root") ?? process.cwd());
 const NOTES_DIR = rel(ROOT, arg("notes"), "notes");
 const COMPONENTS_DIR = rel(ROOT, arg("components"), "components");
-const PORT = Number(arg("port") ?? process.env.PORT ?? 4321);
-const HOST = arg("host") ?? process.env.HOST ?? "localhost";
+// CLI/env take precedence; config supplies the fallback (resolved after load).
+const CLI_PORT = arg("port") ?? process.env.PORT;
+const CLI_HOST = arg("host") ?? process.env.HOST;
 const WATCH = !flag("no-watch");
 
 function findConfig(): string | undefined {
@@ -203,9 +205,12 @@ async function main() {
   });
   await rebuild();
 
+  const host = CLI_HOST ?? state.config.host ?? "localhost";
+  const port = Number(CLI_PORT ?? state.config.port ?? 4321);
+
   const server = Bun.serve({
-    port: PORT,
-    hostname: HOST,
+    port,
+    hostname: host,
     async fetch(req) {
       const url = new URL(req.url);
       const p = url.pathname;
@@ -289,17 +294,35 @@ async function main() {
     },
   });
 
-  banner(`http://${HOST}:${server.port}`);
-  if (flag("open")) openBrowser(`http://${HOST}:${server.port}`);
+  banner(host, server.port);
+  if (flag("open")) openBrowser(`http://${host === "0.0.0.0" || host === "::" ? "localhost" : host}:${server.port}`);
   if (WATCH) startWatching();
 }
 
-function banner(url: string) {
+/** Non-internal IPv4 addresses, for LAN access hints when binding 0.0.0.0. */
+function lanIps(): string[] {
+  const out: string[] = [];
+  for (const iface of Object.values(networkInterfaces())) {
+    for (const a of iface ?? []) {
+      if (a.family === "IPv4" && !a.internal) out.push(a.address);
+    }
+  }
+  return out;
+}
+
+function banner(host: string, port: number) {
+  const all = host === "0.0.0.0" || host === "::" || host === "";
+  const urls = all
+    ? [`http://localhost:${port}`, ...lanIps().map((ip) => `http://${ip}:${port}`)]
+    : [`http://${host}:${port}`];
+  const lines = urls
+    .map((u, i) => `      \x1b[2m${i === 0 ? "→" : " "}\x1b[0m \x1b[4m${u}\x1b[0m`)
+    .join("\n");
   process.stdout.write(
     `\n  📓  \x1b[1mGrimoire\x1b[0m\n` +
       `      \x1b[2mroot:\x1b[0m ${ROOT}\n` +
       `      \x1b[2mnotes:\x1b[0m ${state.notes.length}  \x1b[2mcomponents:\x1b[0m ${state.components.length}\n` +
-      `      \x1b[2m→\x1b[0m \x1b[4m${url}\x1b[0m\n\n`,
+      `${lines}\n\n`,
   );
 }
 

@@ -40,6 +40,11 @@ export interface GrimoireConfig {
   footer?: string;
   /** Multi-language support. Omit for a single-language site. */
   i18n?: I18nConfig;
+  /** Default network interface to bind, e.g. "0.0.0.0" for LAN access. The
+   *  `--host` flag and `HOST` env var override this. Default "localhost". */
+  host?: string;
+  /** Default port. The `--port` flag and `PORT` env var override this. */
+  port?: number;
 }
 
 /** Frontmatter an author may place at the top of any `.mdx` note. */

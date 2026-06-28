@@ -25,6 +25,8 @@ import stylesCss from "./client/styles.css" with { type: "text" };
 import engineCandidates from "../dist/engine/candidates.txt" with { type: "text" };
 import twIndexCss from "../node_modules/tailwindcss/index.css" with { type: "text" };
 import typographyPlugin from "@tailwindcss/typography";
+// Optional chart.js chunk a user component may import (loaded on demand).
+import depChartjs from "../dist/engine/dep.chartjs.js" with { type: "text" };
 
 // --- CLI / paths -------------------------------------------------------------
 function arg(name: string): string | undefined {
@@ -136,6 +138,17 @@ function depModule(name: string): string | null {
       return `const m=globalThis.__grimoire.jsxRuntime;export default m;export const {jsx,jsxs,Fragment}=m;export const jsxDEV=m.jsxDEV||m.jsx;`;
     case "mdx-preact":
       return `export const {MDXProvider,useMDXComponents,withMDXComponents}=globalThis.__grimoire.mdxPreact;`;
+    case "preact-compat": {
+      // preact/compat is bundled into the engine (shares its preact instance);
+      // re-export the common React-compat surface from the runtime namespace.
+      const names =
+        "forwardRef,memo,lazy,Suspense,createPortal,PureComponent,Children,createFactory," +
+        "unmountComponentAtNode,findDOMNode,version,StrictMode,startTransition,useTransition," +
+        "useDeferredValue,useSyncExternalStore,useInsertionEffect,Component,Fragment,createElement," +
+        "cloneElement,createContext,createRef,isValidElement,useState,useEffect,useRef,useMemo," +
+        "useCallback,useContext,useReducer,useLayoutEffect,useImperativeHandle,useDebugValue,useId";
+      return `const m=globalThis.__grimoire.preactCompat;export default (m.default||m);export const {${names}}=m;`;
+    }
     default:
       return null;
   }
@@ -162,7 +175,10 @@ function indexHtml(config: GrimoireConfig): string {
       "preact/hooks": "/_dep/preact/hooks",
       "preact/jsx-runtime": "/_dep/preact/jsx-runtime",
       "preact/jsx-dev-runtime": "/_dep/preact/jsx-dev-runtime",
+      "preact/compat": "/_dep/preact-compat",
       "@mdx-js/preact": "/_dep/mdx-preact",
+      "chart.js": "/_dep/chartjs",
+      "chart.js/auto": "/_dep/chartjs",
     },
   });
   return `<!doctype html><html lang="${lang}"><head>
@@ -299,7 +315,9 @@ async function main() {
       }
 
       if (p.startsWith("/_dep/")) {
-        const mod = depModule(p.slice("/_dep/".length));
+        const name = p.slice("/_dep/".length);
+        if (name === "chartjs") return txt(depChartjs, "text/javascript; charset=utf-8");
+        const mod = depModule(name);
         if (mod == null) return new Response("unknown dep", { status: 404 });
         return txt(mod, "text/javascript; charset=utf-8");
       }

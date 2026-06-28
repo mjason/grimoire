@@ -4,6 +4,7 @@ import { render } from "preact";
 import * as preact from "preact";
 import * as preactHooks from "preact/hooks";
 import * as jsxRuntime from "preact/jsx-runtime";
+import * as preactCompat from "preact/compat";
 import * as mdxPreact from "@mdx-js/preact";
 import { MDXProvider } from "@mdx-js/preact";
 import { App } from "../app";
@@ -16,7 +17,7 @@ import type { GrimoireConfig } from "../../types";
 // Expose engine deps so runtime-loaded user components (served as ES modules)
 // can resolve `preact`, `preact/hooks`, etc. via the page's import map, whose
 // /_dep/* shims re-export from here.
-(globalThis as any).__grimoire = { preact, preactHooks, jsxRuntime, mdxPreact };
+(globalThis as any).__grimoire = { preact, preactHooks, jsxRuntime, preactCompat, mdxPreact };
 
 interface Manifest {
   config: GrimoireConfig;

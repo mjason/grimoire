@@ -183,8 +183,23 @@ export default {
 ## The binary / CLI
 
 ```bash
-./grimoire [flags]
+./grimoire [flags]              # run in the foreground (Ctrl+C to stop)
 ```
+
+### Daemon mode (handy for agents / background use)
+
+```bash
+./grimoire start [flags]        # start in the background, returns immediately
+./grimoire status               # is it running? show pid + URL
+./grimoire restart [flags]      # restart in place
+./grimoire stop                 # stop it
+```
+
+`start` writes state + logs to `<root>/.grimoire/`. Hot reload runs in the
+background, so edits to notes/components are picked up live without a restart.
+Pass the same `--root`/`--port`/etc. to address a specific project.
+
+### Flags
 
 | Flag | Default | Description |
 |------|---------|-------------|

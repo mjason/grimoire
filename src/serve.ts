@@ -18,6 +18,7 @@ import {
   type ComponentEntry,
 } from "./runtime/content";
 import { createCssCompiler, extractCandidates, type CssCompiler } from "./runtime/css";
+import { runDaemon, writeDaemonState } from "./daemon";
 
 // --- Embedded engine assets (bundled into the binary; read from disk in dev) --
 import engineJs from "../dist/engine/app.js" with { type: "text" };
@@ -291,6 +292,7 @@ async function main() {
   const server = Bun.serve({
     port,
     hostname: host,
+    reusePort: true, // let `restart` rebind immediately after the old process exits
     async fetch(req) {
       const url = new URL(req.url);
       const p = url.pathname;
@@ -392,8 +394,18 @@ async function main() {
     },
   });
 
+  const localHost = host === "0.0.0.0" || host === "::" ? "localhost" : host;
+  // If launched by `grimoire start`, advertise our address to the daemon controls.
+  writeDaemonState({
+    pid: process.pid,
+    host,
+    port: server.port,
+    url: `http://${localHost}:${server.port}`,
+    startedAt: new Date().toISOString(),
+  });
+
   banner(host, server.port);
-  if (flag("open")) openBrowser(`http://${host === "0.0.0.0" || host === "::" ? "localhost" : host}:${server.port}`);
+  if (flag("open")) openBrowser(`http://${localHost}:${server.port}`);
   if (WATCH) startWatching();
 }
 
@@ -454,7 +466,16 @@ function startWatching() {
   if (cfg && existsSync(cfg)) watch(cfg, schedule);
 }
 
-main().catch((e) => {
+// Dispatch: `grimoire start|stop|restart|status` → daemon controls; otherwise
+// (`serve` or no subcommand) run the server in the foreground.
+const DAEMON_SUBS = ["start", "stop", "restart", "status"];
+const subcommand = Bun.argv.slice(1).find((a) => DAEMON_SUBS.includes(a));
+const onError = (e: unknown) => {
   console.error(e);
   process.exit(1);
-});
+};
+if (subcommand) {
+  runDaemon(subcommand).catch(onError);
+} else {
+  main().catch(onError);
+}

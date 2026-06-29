@@ -72,7 +72,13 @@ async function start(): Promise<void> {
     .map((a) => (SUBS.includes(a) ? "serve" : a))
     .concat(["--daemon-state", STATE]);
   const out = openSync(LOG, "a");
-  const child = spawn(self, args, { detached: true, stdio: ["ignore", out, out] });
+  // detached + unref so it outlives this process; windowsHide avoids a console
+  // window popping up on Windows.
+  const child = spawn(self, args, {
+    detached: true,
+    stdio: ["ignore", out, out],
+    windowsHide: true,
+  });
   child.unref();
 
   // Wait for the child to bind + write its state (or fail).

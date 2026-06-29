@@ -289,11 +289,11 @@ async function main() {
     h.includes(":") || h.startsWith("[") || // ipv6 literal
     h.endsWith(".local") || h.endsWith(".localhost");
 
-  const server = Bun.serve({
-    port,
-    hostname: host,
-    reusePort: true, // let `restart` rebind immediately after the old process exits
-    async fetch(req) {
+  const startServer = (boundPort: number) =>
+    Bun.serve({
+      port: boundPort,
+      hostname: host,
+      async fetch(req) {
       const url = new URL(req.url);
       const p = url.pathname;
 
@@ -393,6 +393,31 @@ async function main() {
       });
     },
   });
+
+  // Bind the requested port; if it's taken (e.g. another instance), move to the
+  // next free one so multiple projects can run at once. The chosen port is shown
+  // in the banner and recorded in the daemon state.
+  let server: ReturnType<typeof startServer> | undefined;
+  for (let bp = port, i = 0; i < 64 && !server; i++, bp++) {
+    for (let attempt = 0; attempt < (i === 0 ? 5 : 1); attempt++) {
+      try {
+        server = startServer(bp);
+        break;
+      } catch (e) {
+        const msg = String((e as { code?: string; message?: string }).code ?? (e as Error).message ?? e);
+        if (!/EADDRINUSE|address already in use/i.test(msg)) throw e;
+        if (i === 0 && attempt < 4) {
+          await Bun.sleep(120); // retry same port a few times (covers restart races)
+          continue;
+        }
+        break; // give up on this port, try the next
+      }
+    }
+  }
+  if (!server) throw new Error(`could not bind a free port near ${port}`);
+  if (server.port !== port) {
+    process.stdout.write(`\x1b[2m  port ${port} in use → using ${server.port}\x1b[0m\n`);
+  }
 
   const localHost = host === "0.0.0.0" || host === "::" ? "localhost" : host;
   // If launched by `grimoire start`, advertise our address to the daemon controls.

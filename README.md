@@ -165,20 +165,69 @@ Components are [Preact](https://preactjs.com) components styled with Tailwind. U
 `preact/hooks` for interactivity, and the `var(--accent)` CSS variable for the theme
 color.
 
-## Configuration — `config.ts` / `config.json`
+## Configuration
 
-A plain default export, loaded at runtime (so it can live in any project dir).
-`.json`/`.jsonc` config supports comments and trailing commas:
+Loaded at runtime from the project root: `config.ts` / `config.js` (a default
+export) or `config.json` / `config.jsonc`. **JSONC** — comments and trailing
+commas — is supported. Every field is optional except a sensible `title`.
 
-```ts
-export default {
-  title: "My Grimoire",
-  description: "An AI-authored notebook.",
-  theme: { accent: "violet", defaultMode: "system" },
-  categoryOrder: ["guides", "data", "reference"],
-  footer: "Built with Grimoire",
-};
+Full reference (`config.jsonc`):
+
+```jsonc
+{
+  // ── Site ───────────────────────────────────────────────
+  "title": "My Grimoire",              // browser tab + sidebar heading
+  "description": "An AI-authored notebook.",
+  "author": "Claude",
+  "footer": "Built with Grimoire",     // small print in the sidebar footer
+
+  // ── Theme ──────────────────────────────────────────────
+  "theme": {
+    // violet indigo blue sky cyan emerald green amber orange rose pink fuchsia
+    "accent": "violet",
+    "defaultMode": "system"            // light | dark | system
+  },
+
+  // ── Navigation ─────────────────────────────────────────
+  // Top-level folder order in the sidebar; unlisted folders follow A→Z.
+  "categoryOrder": ["guides", "data", "reference"],
+
+  // ── Languages (omit for single-language) ───────────────
+  "i18n": {
+    "defaultLocale": "en",
+    "locales": [
+      { "code": "en", "label": "English" },
+      { "code": "zh", "label": "中文" }   // note files: name.zh.mdx
+    ]
+  },
+
+  // ── Server & paths (CLI flag / env var override these) ─
+  "host": "localhost",   // 0.0.0.0 for LAN.  override: --host, HOST
+  "port": 4321,          // auto-bumps if taken. override: --port, PORT
+  "notes": "notes",      // notes dir (rel. to root).  override: --notes
+  "components": "components" // components dir.        override: --components
+}
 ```
+
+| Field | Type | Default | Notes |
+|-------|------|---------|-------|
+| `title` | string | "Grimoire" | Tab + sidebar title |
+| `description` | string | — | Meta description |
+| `author` | string | — | — |
+| `footer` | string | — | Sidebar footer text |
+| `theme.accent` | string | "violet" | One of the 12 names above |
+| `theme.defaultMode` | string | "system" | `light` / `dark` / `system` |
+| `categoryOrder` | string[] | — | Sidebar folder order |
+| `i18n.defaultLocale` | string | "en" | Fallback language |
+| `i18n.locales` | `{code,label}[]` | — | Language switcher entries |
+| `host` | string | "localhost" | Bind address; `--host`/`HOST` win |
+| `port` | number | 4321 | `--port`/`PORT` win; auto-increments if busy |
+| `notes` | string | "notes" | Notes dir; `--notes` wins |
+| `components` | string | "components" | Components dir; `--components` wins |
+
+Precedence for `host`/`port`/`notes`/`components`: **CLI flag → env var → config →
+default**. Run several projects at once — each on its own port (it auto-bumps when
+the chosen port is taken; the actual port shows in `grimoire status`).
 
 ## The binary / CLI
 

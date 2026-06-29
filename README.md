@@ -246,7 +246,8 @@ the chosen port is taken; the actual port shows in `grimoire status`).
 
 `start` writes state + logs to `<root>/.grimoire/`. Hot reload runs in the
 background, so edits to notes/components are picked up live without a restart.
-Pass the same `--root`/`--port`/etc. to address a specific project.
+Pass the same `--root`/`--port`/etc. to address a specific project. Works on
+Linux, macOS, and Windows.
 
 ### Flags
 

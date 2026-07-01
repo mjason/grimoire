@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { scanNotes, compileNote } from "./runtime/content";
+import { checkMermaid } from "./check-mermaid";
 
 const GREEN = "\x1b[32m";
 const RED = "\x1b[31m";
@@ -34,17 +35,30 @@ async function main() {
 
   let failures = 0;
   for (const note of notes) {
+    const tag = note.lang ? ` ${DIM}[${note.lang}]${RESET}` : "";
     try {
+      const raw = await readFile(note.file, "utf8");
       const body = await compileNote(note.file);
       if (!body || body.length < 1) throw new Error("empty output");
-      process.stdout.write(`${GREEN}✓${RESET} ${note.id}${note.lang ? ` ${DIM}[${note.lang}]${RESET}` : ""}\n`);
+      // Beyond "does it compile?": parse-check any Mermaid diagrams too, since a
+      // bad diagram compiles fine and only fails when rendered.
+      const issues = await checkMermaid(raw);
+      if (issues.length > 0) {
+        failures++;
+        process.stdout.write(`${RED}✗ ${note.id}${RESET}${tag}\n`);
+        for (const it of issues) {
+          process.stdout.write(`  ${RED}mermaid:${RESET} ${it.error}\n  ${DIM}${it.source.split("\n")[0]}…${RESET}\n`);
+        }
+        continue;
+      }
+      process.stdout.write(`${GREEN}✓${RESET} ${note.id}${tag}\n`);
     } catch (err) {
       failures++;
-      process.stdout.write(`${RED}✗ ${note.id}${RESET}\n  ${(err as Error).message}\n`);
+      process.stdout.write(`${RED}✗ ${note.id}${RESET}${tag}\n  ${(err as Error).message}\n`);
     }
   }
   process.stdout.write(
-    `\n${failures === 0 ? GREEN + "✓" : RED + "✗"} ${notes.length - failures}/${notes.length} notes compiled${RESET}\n`,
+    `\n${failures === 0 ? GREEN + "✓" : RED + "✗"} ${notes.length - failures}/${notes.length} notes OK${RESET}\n`,
   );
   process.exit(failures === 0 ? 0 : 1);
 }

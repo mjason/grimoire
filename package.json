@@ -51,6 +51,7 @@
   "devDependencies": {
     "@tailwindcss/typography": "^0.5",
     "@types/bun": "^1.2.0",
+    "happy-dom": "^20.10.6",
     "playwright-core": "^1.61",
     "tailwindcss": "^4",
     "typescript": "^5.7.0"

@@ -13,7 +13,9 @@ and **add components** (`.tsx` in `components/`). This file is the contract.
   `data/sales`. An `index.mdx` represents its folder.
 - **Frontmatter is YAML** between `---` fences. Always quote dates: `date: "2026-06-27"`.
 - The engine **hot-reloads** — run `bun run dev`, edit a note, and the page refreshes.
-  Run `bun run verify` to confirm every note compiles. No rebuild needed to see edits;
+  Run `bun run verify` to confirm every note compiles **and its Mermaid diagrams
+  parse** (exits non-zero and prints the offending note + error if not — use it to
+  check your work). No rebuild needed to see edits;
   `bun run compile` only rebuilds the engine binary itself.
 
 ## Frontmatter fields

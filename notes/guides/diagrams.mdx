@@ -1,0 +1,85 @@
+---
+title: Diagrams
+description: Draw flowcharts, sequences, and more with Mermaid.
+tags: [mermaid, diagrams, guide]
+date: "2026-07-01"
+icon: 🗺️
+order: 5
+---
+
+Write a fenced `mermaid` block and it renders as a diagram — no setup. The
+mermaid library is loaded lazily (only on pages that use it) and re-themes with
+dark mode automatically. Try toggling the theme while viewing this page.
+
+## Flowchart
+
+```mermaid
+flowchart TD
+  A[Request] --> B{Authenticated?}
+  B -->|no| X[401 Unauthorized]
+  B -->|yes| C[Validate input]
+  C --> D{Cache hit?}
+  D -->|hit| E[Return cached]
+  D -->|miss| F[Query database]
+  F --> G[Write cache] --> E
+```
+
+## Sequence
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant S as Server
+  participant DB as Database
+  U->>S: POST /order
+  S->>DB: INSERT order
+  DB-->>S: ok (id)
+  S-->>U: 201 Created
+```
+
+## State
+
+```mermaid
+stateDiagram-v2
+  [*] --> Draft
+  Draft --> Review: submit
+  Review --> Draft: changes requested
+  Review --> Published: approve
+  Published --> [*]
+```
+
+## Grouping with subgraphs
+
+For structured flows, group related nodes — this keeps larger diagrams readable.
+
+```mermaid
+flowchart LR
+  subgraph Client
+    A[Browser] --> B[Import map]
+  end
+  subgraph Engine
+    B --> C["/api/note"] --> D[Compile MDX]
+    D --> E[Render Preact]
+  end
+```
+
+## Component form
+
+When you need it inline (e.g. building the source dynamically), use the
+component directly:
+
+<Mermaid chart={`mindmap
+  root((Grimoire))
+    Notes
+      MDX
+      Frontmatter
+    Components
+      Built-in
+      Custom
+    Diagrams
+      Mermaid`} />
+
+<Callout type="tip" title="Complex diagrams">
+  Mermaid uses automatic layout. For very large or dense graphs, split into
+  subgraphs or several linked diagrams rather than one giant chart.
+</Callout>

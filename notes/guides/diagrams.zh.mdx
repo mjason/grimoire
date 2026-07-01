@@ -1,0 +1,83 @@
+---
+title: 图表
+description: 用 Mermaid 画流程图、时序图等。
+tags: [mermaid, 图表, 指南]
+date: "2026-07-01"
+icon: 🗺️
+order: 5
+---
+
+写一个 `mermaid` 代码块就能渲染成图 —— 零配置。mermaid 库按需懒加载(只在用到的
+页面加载),并跟随深色模式自动切换主题。你可以在看这一页时切换主题试试。
+
+## 流程图
+
+```mermaid
+flowchart TD
+  A[请求] --> B{已鉴权?}
+  B -->|否| X[401 未授权]
+  B -->|是| C[校验输入]
+  C --> D{命中缓存?}
+  D -->|命中| E[返回缓存]
+  D -->|未命中| F[查询数据库]
+  F --> G[写入缓存] --> E
+```
+
+## 时序图
+
+```mermaid
+sequenceDiagram
+  participant U as 用户
+  participant S as 服务器
+  participant DB as 数据库
+  U->>S: POST /order
+  S->>DB: INSERT order
+  DB-->>S: ok (id)
+  S-->>U: 201 Created
+```
+
+## 状态图
+
+```mermaid
+stateDiagram-v2
+  [*] --> 草稿
+  草稿 --> 审核: 提交
+  审核 --> 草稿: 打回修改
+  审核 --> 已发布: 通过
+  已发布 --> [*]
+```
+
+## 用子图分组
+
+结构复杂的流程,把相关节点分组 —— 大图也能保持清晰。
+
+```mermaid
+flowchart LR
+  subgraph 客户端
+    A[浏览器] --> B[Import map]
+  end
+  subgraph 引擎
+    B --> C["/api/note"] --> D[编译 MDX]
+    D --> E[渲染 Preact]
+  end
+```
+
+## 组件写法
+
+需要内联(比如动态拼接源码)时,直接用组件:
+
+<Mermaid chart={`mindmap
+  root((Grimoire))
+    笔记
+      MDX
+      Frontmatter
+    组件
+      内置
+      自定义
+    图表
+      Mermaid`} />
+
+<Callout type="tip" title="复杂的图">
+  Mermaid 用自动布局。图非常大或非常密时,拆成子图或多张互相链接的图,而不是硬塞进
+  一张巨图。
+</Callout>

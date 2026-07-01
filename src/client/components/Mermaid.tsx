@@ -44,6 +44,9 @@ export function Mermaid({ chart, children }: { chart?: string; children?: unknow
           securityLevel: "strict",
           fontFamily: "inherit",
         });
+        // Validate first: a syntax error throws here cleanly, so render() never
+        // runs and never leaves its "error" diagram orphaned in the DOM.
+        await mermaid.parse(source);
         const out = await mermaid.render(`mmd-${seq++}`, source);
         if (token === seqRef.current) {
           setSvg(out.svg);

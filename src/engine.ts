@@ -14,6 +14,8 @@ import { extractCandidates } from "./runtime/css";
 // exposed via a shim — see boot.tsx / serve.ts — so it shares preact's instance.)
 const DEP_CHUNKS: Record<string, string> = {
   "dep.chartjs.js": `export * from "chart.js";\nexport { default } from "chart.js/auto";`,
+  // Mermaid (~3.5 MB) for the built-in <Mermaid> component — lazy-loaded on demand.
+  "dep.mermaid.js": `export { default } from "mermaid";`,
 };
 
 async function buildDepChunks(): Promise<void> {
@@ -68,6 +70,9 @@ export async function buildEngine(): Promise<void> {
     minify: true,
     naming: { entry: "app.[ext]" },
     define: { "process.env.NODE_ENV": '"production"' },
+    // Keep mermaid out of the engine bundle — the <Mermaid> component imports it
+    // dynamically at runtime, resolved via the page import map to /_dep/mermaid.
+    external: ["mermaid"],
   });
   if (!result.success) {
     for (const log of result.logs) console.error(log);

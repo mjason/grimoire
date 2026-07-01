@@ -4,6 +4,7 @@ import { Callout } from "./Callout";
 import { Tabs, Tab } from "./Tabs";
 import { Steps, Step, Card, CardGrid, Badge, Kbd } from "./Layout";
 import { Pre, H2, H3, H4, A, Table } from "./elements";
+import { Mermaid } from "./Mermaid";
 
 /**
  * Built-in components + the HTML element overrides (a, pre, h2…, table) handed
@@ -18,7 +19,9 @@ export const builtinComponents: Record<string, any> = {
   h3: H3,
   h4: H4,
   table: Table,
+  mermaid: Mermaid, // ```mermaid fenced blocks (via rehypeMermaid)
   // Built-in rich components
+  Mermaid,
   Chart,
   DataTable,
   Callout,

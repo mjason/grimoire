@@ -53,6 +53,26 @@ draft: true               # optional — hides the note
 <Badge color="#7c3aed">new</Badge>   <Kbd>Ctrl</Kbd>
 ```
 
+### Diagrams (Mermaid)
+
+Write a fenced `mermaid` block — it renders as a diagram (flowchart, sequence,
+state, class, ER, gantt, mindmap…). This is the preferred way:
+
+````mdx
+```mermaid
+flowchart TD
+  A[Start] --> B{OK?}
+  B -->|yes| C[Done]
+  B -->|no| A
+```
+````
+
+Or the component form when you need it inline: `<Mermaid chart={`sequenceDiagram
+  A->>B: hi`} />`. The mermaid library is loaded lazily (only on pages that use
+it) and re-themes with dark mode automatically. Mermaid uses **auto-layout** —
+great for structured flows; for very large/dense graphs, split into subgraphs or
+multiple diagrams.
+
 ## Custom components shipped in `components/`
 
 ```mdx

@@ -4,7 +4,7 @@
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
 import rehypeHighlight from "rehype-highlight";
-import { remarkCodeMeta, rehypeCodeLines } from "./code-plugins";
+import { remarkCodeMeta, rehypeCodeLines, rehypeMermaid } from "./code-plugins";
 import { rehypeDmagic } from "./dmagic";
 
 export function mdxCompileOptions(outputFormat: "program" | "function-body") {
@@ -15,6 +15,7 @@ export function mdxCompileOptions(outputFormat: "program" | "function-body") {
     remarkPlugins: [remarkGfm, remarkCodeMeta],
     rehypePlugins: [
       rehypeSlug,
+      rehypeMermaid, // before highlight — pull ```mermaid out as a diagram
       [rehypeHighlight, { detect: true, ignoreMissing: true }],
       rehypeDmagic,
       rehypeCodeLines,

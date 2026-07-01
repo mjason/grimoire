@@ -26,8 +26,9 @@ and refresh — no rebuild of the binary.
 - **Bring your own content** — the binary is the engine; your notes/components live
   in a directory you choose. Edit and refresh; no recompile.
 - **MDX notes** — Markdown when you want prose, components when you want richness.
-- **Interactive by default** — [Chart.js](https://www.chartjs.org) charts and a
-  sortable / searchable / paginated `DataTable`, usable straight from MDX.
+- **Interactive by default** — [Chart.js](https://www.chartjs.org) charts, a
+  sortable / searchable / paginated `DataTable`, and [Mermaid](https://mermaid.js.org)
+  diagrams (` ```mermaid ` fenced blocks), usable straight from MDX.
 - **AI-friendly** — author a note by writing one `.mdx` file; add a brand-new
   component by dropping one `.tsx` file. No registration, no wiring.
 - **Folders are categories**, **tags & search**, **dark mode**, configurable accent.

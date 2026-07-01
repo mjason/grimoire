@@ -54,6 +54,34 @@ export function remarkCodeMeta() {
   };
 }
 
+/** Concatenate all text under a hast node. */
+function textOf(node: Node): string {
+  if (node.type === "text") return String(node.value ?? "");
+  return (node.children ?? []).map(textOf).join("");
+}
+
+/**
+ * rehype (run BEFORE highlighting): turn a ```mermaid fenced block into a
+ * `<mermaid chart="…">` element (mapped to the Mermaid component) so it renders
+ * as a diagram instead of a highlighted code block.
+ */
+export function rehypeMermaid() {
+  return (tree: Node) => {
+    walk(tree, (node, parent) => {
+      if (node.tagName !== "code" || parent?.tagName !== "pre") return;
+      const props: Record<string, any> = node.properties ?? {};
+      const cls = Array.isArray(props.className) ? props.className.join(" ") : String(props.className ?? "");
+      const lang = props["data-lang"] ?? props.dataLang ?? /language-([\w-]+)/.exec(cls)?.[1];
+      if (lang !== "mermaid") return;
+      const raw = textOf(node).replace(/\n$/, "");
+      // Rewrite the wrapping <pre> in place → <mermaid chart="…">.
+      parent.tagName = "mermaid";
+      parent.properties = { chart: raw };
+      parent.children = [];
+    });
+  };
+}
+
 /** Read a hast property that may be camelCased (dataX) or hyphenated (data-x). */
 function getProp(props: Record<string, any>, hyphen: string): any {
   const camel = hyphen.replace(/-([a-z])/g, (_, c) => c.toUpperCase());

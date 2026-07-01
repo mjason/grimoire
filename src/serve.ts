@@ -28,6 +28,7 @@ import twIndexCss from "../node_modules/tailwindcss/index.css" with { type: "tex
 import typographyPlugin from "@tailwindcss/typography";
 // Optional chart.js chunk a user component may import (loaded on demand).
 import depChartjs from "../dist/engine/dep.chartjs.js" with { type: "text" };
+import depMermaid from "../dist/engine/dep.mermaid.js" with { type: "text" };
 
 // --- CLI / paths -------------------------------------------------------------
 function arg(name: string): string | undefined {
@@ -226,6 +227,7 @@ function indexHtml(config: GrimoireConfig): string {
       "@mdx-js/preact": "/_dep/mdx-preact",
       "chart.js": "/_dep/chartjs",
       "chart.js/auto": "/_dep/chartjs",
+      mermaid: "/_dep/mermaid",
     },
   });
   return `<!doctype html><html lang="${lang}"><head>
@@ -365,6 +367,7 @@ async function main() {
       if (p.startsWith("/_dep/")) {
         const name = p.slice("/_dep/".length);
         if (name === "chartjs") return txt(depChartjs, "text/javascript; charset=utf-8");
+        if (name === "mermaid") return txt(depMermaid, "text/javascript; charset=utf-8");
         const mod = depModule(name);
         if (mod == null) return new Response("unknown dep", { status: 404 });
         return txt(mod, "text/javascript; charset=utf-8");

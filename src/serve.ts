@@ -6,8 +6,8 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { watch } from "node:fs";
 import { networkInterfaces } from "node:os";
-import { isAbsolute, join, resolve } from "node:path";
-import { DEFAULT_CONFIG } from "./config";
+import { resolve } from "node:path";
+import { findConfig as findProjectConfig, loadConfig as loadProjectConfig, resolveDir } from "./load-config";
 import type { GrimoireConfig } from "./types";
 import {
   scanNotes,
@@ -39,8 +39,6 @@ function arg(name: string): string | undefined {
   return undefined;
 }
 const flag = (name: string) => Bun.argv.includes(`--${name}`);
-const rel = (base: string, p: string | undefined, fallback: string) =>
-  p ? (isAbsolute(p) ? p : resolve(base, p)) : resolve(base, fallback);
 
 const ROOT = resolve(arg("root") ?? process.cwd());
 // notes/components dirs: --flag → config → default (resolved per rebuild).
@@ -51,70 +49,11 @@ const CLI_PORT = arg("port") ?? process.env.PORT;
 const CLI_HOST = arg("host") ?? process.env.HOST;
 const WATCH = !flag("no-watch");
 
-function findConfig(): string | undefined {
-  const explicit = arg("config");
-  if (explicit) return rel(ROOT, explicit, "");
-  for (const name of ["config.ts", "config.js", "config.mjs", "config.json", "config.jsonc"]) {
-    const p = join(ROOT, name);
-    if (existsSync(p)) return p;
-  }
-  return undefined;
-}
-
-/** Parse JSON with comments + trailing commas (jsonc). String contents are
- *  preserved, so `//` or `/*` inside a value isn't mistaken for a comment. */
-function parseJsonc(text: string): unknown {
-  let out = "";
-  let inStr = false;
-  let line = false;
-  let block = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i]!;
-    const n = text[i + 1];
-    if (line) {
-      if (c === "\n") {
-        line = false;
-        out += c;
-      }
-    } else if (block) {
-      if (c === "*" && n === "/") {
-        block = false;
-        i++;
-      }
-    } else if (inStr) {
-      out += c;
-      if (c === "\\") out += text[++i] ?? "";
-      else if (c === '"') inStr = false;
-    } else if (c === '"') {
-      inStr = true;
-      out += c;
-    } else if (c === "/" && n === "/") {
-      line = true;
-      i++;
-    } else if (c === "/" && n === "*") {
-      block = true;
-      i++;
-    } else {
-      out += c;
-    }
-  }
-  return JSON.parse(out.replace(/,(\s*[}\]])/g, "$1"));
-}
-
-async function loadConfig(): Promise<GrimoireConfig> {
-  const file = findConfig();
-  if (!file || !existsSync(file)) return DEFAULT_CONFIG;
-  try {
-    if (file.endsWith(".json") || file.endsWith(".jsonc")) {
-      return { ...DEFAULT_CONFIG, ...(parseJsonc(await readFile(file, "utf8")) as object) };
-    }
-    const mod = await import(`${file}?t=${Date.now()}`);
-    return { ...DEFAULT_CONFIG, ...(mod.default ?? mod.config ?? {}) };
-  } catch (e) {
-    console.error(`grimoire: failed to load config (${file}):`, (e as Error).message);
-    return DEFAULT_CONFIG;
-  }
-}
+// Config discovery + loading live in ./load-config (shared with the CLI checks
+// so server and `verify` resolve a project identically). Bind them to this run's
+// ROOT and --config flag.
+const findConfig = (): string | undefined => findProjectConfig(ROOT, arg("config"));
+const loadConfig = (): Promise<GrimoireConfig> => loadProjectConfig(ROOT, arg("config"));
 
 // --- State -------------------------------------------------------------------
 interface State {
@@ -137,8 +76,8 @@ function locales(config: GrimoireConfig): string[] {
 async function rebuild(): Promise<void> {
   const config = await loadConfig();
   // --flag overrides config overrides the default.
-  const notesDir = rel(ROOT, CLI_NOTES ?? config.notes, "notes");
-  const componentsDir = rel(ROOT, CLI_COMPONENTS ?? config.components, "components");
+  const notesDir = resolveDir(ROOT, CLI_NOTES ?? config.notes, "notes");
+  const componentsDir = resolveDir(ROOT, CLI_COMPONENTS ?? config.components, "components");
   const [notes, components] = await Promise.all([
     scanNotes(notesDir, locales(config)),
     scanComponents(componentsDir),

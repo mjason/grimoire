@@ -1,35 +1,23 @@
-// Compile every note in ./notes with the runtime MDX compiler and report any
-// that fail — a fast pre-flight check (no browser, no engine build needed).
+// Compile every note in a project (its notes dir resolved from config, exactly
+// like the server) with the runtime MDX compiler and report any that fail — a
+// fast pre-flight check: no browser, no engine build needed.
 import { resolve } from "node:path";
-import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { scanNotes, compileNote } from "./runtime/content";
 import { checkMermaid } from "./check-mermaid";
+import { loadConfig, resolveDir } from "./load-config";
 
 const GREEN = "\x1b[32m";
 const RED = "\x1b[31m";
 const DIM = "\x1b[2m";
 const RESET = "\x1b[0m";
 
-async function loadLocales(root: string): Promise<string[]> {
-  for (const name of ["config.json", "config.ts", "config.js", "config.mjs"]) {
-    const p = resolve(root, name);
-    if (!existsSync(p)) continue;
-    try {
-      const cfg = name.endsWith(".json")
-        ? JSON.parse(await readFile(p, "utf8"))
-        : (await import(`${p}?t=${Date.now()}`)).default;
-      return (cfg?.i18n?.locales ?? []).map((l: { code: string }) => l.code);
-    } catch {
-      return [];
-    }
-  }
-  return [];
-}
-
 export async function runVerify(root: string): Promise<number> {
-  const notesDir = resolve(root, "notes");
-  const locales = await loadLocales(root);
+  // Resolve the notes dir from the project's config (same as the server), so this
+  // honors a custom `notes` dir like `content/` instead of assuming `<root>/notes`.
+  const config = await loadConfig(root);
+  const notesDir = resolveDir(root, config.notes, "notes");
+  const locales = (config.i18n?.locales ?? []).map((l: { code: string }) => l.code);
   const notes = await scanNotes(notesDir, locales);
 
   let failures = 0;

@@ -114,6 +114,24 @@ export function tokenizeDmagic(src: string): Token[] {
   return out;
 }
 
+/** DSL that lives inside a (Python) string span: the text still has its wrapping
+ *  quotes, so strip them (they keep the string color from the parent span) and
+ *  DSL-tokenize only the contents — otherwise the whole thing reads as one
+ *  string literal and nothing inside gets highlighted. */
+function tokenizeDslString(text: string): Token[] {
+  const q = text[0];
+  if (q !== '"' && q !== "'") return tokenizeDmagic(text);
+  let a = 0;
+  while (text[a] === q) a++; // opening run (handles ' " and ''' """)
+  let b = text.length;
+  while (b > a && text[b - 1] === q) b--; // closing run
+  return [
+    { cls: null, value: text.slice(0, a) },
+    ...tokenizeDmagic(text.slice(a, b)),
+    { cls: null, value: text.slice(b) },
+  ];
+}
+
 function tokensToHast(tokens: Token[]): HastNode[] {
   return tokens.map((t) =>
     t.cls
@@ -174,7 +192,7 @@ export function rehypeDmagic() {
           if (n.type === "element" && hasClass(n, "hljs-string")) {
             const text = textOf(n);
             if (DSL_MARKER.test(text)) {
-              n.children = tokensToHast(tokenizeDmagic(text));
+              n.children = tokensToHast(tokenizeDslString(text));
             }
           }
         });

@@ -313,12 +313,14 @@ async function main() {
       }
 
       if (p === "/__livereload") {
-        if (!WATCH) return new Response("", { status: 204 });
+        // Always answer with an event-stream so the browser's EventSource never
+        // errors on the MIME type. With --no-watch the stream just stays idle
+        // (it's never registered for reload notifications).
         let ref: ReadableStreamDefaultController;
         const stream = new ReadableStream({
           start(c) {
             ref = c;
-            sseClients.add(c);
+            if (WATCH) sseClients.add(c);
           },
           cancel() {
             sseClients.delete(ref);

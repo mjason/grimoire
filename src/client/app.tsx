@@ -71,7 +71,7 @@ export function App({ config, rawNotes }: { config: GrimoireConfig; rawNotes: Ra
       )}
 
       <main class="min-w-0 flex-1">
-        <div class="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8 lg:px-12">
+        <div class="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8 lg:px-12 xl:max-w-4xl 2xl:max-w-5xl">
           <Content route={route} notes={notes} byId={byId} tags={tags} />
         </div>
       </main>

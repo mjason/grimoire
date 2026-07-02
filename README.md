@@ -250,6 +250,20 @@ background, so edits to notes/components are picked up live without a restart.
 Pass the same `--root`/`--port`/etc. to address a specific project. Works on
 Linux, macOS, and Windows.
 
+### Checking notes (for CI / agents)
+
+```bash
+./grimoire verify               # browser-free: every note compiles + Mermaid parses
+./grimoire check                # thorough: render every note headless, report any error
+```
+
+Both exit non-zero and print the offending note + message, so an AI/CI can
+self-check instead of eyeballing the browser. `verify` needs nothing extra.
+`check` renders each note in headless Chromium (auto-detected, or set
+`GRIMOIRE_CHROMIUM`) and catches component exceptions, Mermaid failures, and
+console errors — it needs `playwright-core` reachable (a dev checkout, or
+`bun add playwright-core`); otherwise it says so and points you back to `verify`.
+
 ### Flags
 
 | Flag | Default | Description |

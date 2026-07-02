@@ -4,18 +4,16 @@
 // only proves a note compiles), this catches runtime render failures, so an AI
 // can self-check its work without a human opening a browser.
 //
-//   bun run check                # checks ./notes
-//   bun run check /path/to/proj  # checks another project
+//   bun run check                # dev, checks ./notes
+//   grimoire check               # same, from the binary
+//   grimoire check /path/to/proj # another project
 //
 // Needs a Chromium/Chrome (set GRIMOIRE_CHROMIUM=/path, or one is auto-detected).
-// No browser available? `bun run verify` is the browser-free fallback (compile +
-// Mermaid syntax).
+// No browser available? `verify` is the browser-free fallback (compile + Mermaid).
 import { existsSync } from "node:fs";
 import { readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
-import { chromium } from "playwright-core";
-import { buildEngine } from "./engine";
 
 const GREEN = "\x1b[32m";
 const RED = "\x1b[31m";
@@ -33,6 +31,7 @@ function findChromium(): string | null {
     "/usr/bin/google-chrome-stable",
     "/snap/bin/chromium",
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
   ]) {
     if (existsSync(p)) return p;
   }
@@ -41,30 +40,53 @@ function findChromium(): string | null {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function main() {
-  const root = resolve(process.argv[2] ?? process.cwd());
+/** Returns a process exit code: 0 = all clean, 1 = errors found, 2 = no browser. */
+export async function runCheck(root: string): Promise<number> {
+  // playwright-core can't be bundled into the single-file binary, so it's only
+  // present when running from a dev checkout. Load it dynamically and degrade
+  // gracefully otherwise.
+  let chromium: typeof import("playwright-core").chromium;
+  try {
+    ({ chromium } = await import("playwright-core"));
+  } catch {
+    process.stderr.write(
+      `${RED}✗${RESET} ${YEL}check${RESET} needs a browser driver that isn't in the binary.\n` +
+        `  Run ${YEL}verify${RESET} (browser-free: compile + Mermaid), or ${YEL}bun run check${RESET} from a dev checkout.\n`,
+    );
+    return 2;
+  }
+
   const chromePath = findChromium();
   if (!chromePath) {
     process.stderr.write(
       `${RED}✗${RESET} No Chromium/Chrome found.\n` +
-        `  Set ${YEL}GRIMOIRE_CHROMIUM${RESET}=/path/to/chromium, or run ${YEL}bun run verify${RESET} ` +
+        `  Set ${YEL}GRIMOIRE_CHROMIUM${RESET}=/path/to/chromium, or run ${YEL}verify${RESET} ` +
         `(browser-free: compile + Mermaid syntax).\n`,
     );
-    process.exit(2);
+    return 2;
   }
 
-  // Fresh engine so the check reflects the current components.
-  await buildEngine();
+  // Running from source (dev) vs the compiled binary: in dev we rebuild the
+  // engine first and launch the server via `bun serve.ts`; the binary already
+  // embeds the engine and re-launches itself.
+  const serveSrc = join(import.meta.dir, "serve.ts");
+  const isDev = existsSync(serveSrc);
+  if (isDev) {
+    const { buildEngine } = await import("./engine");
+    await buildEngine();
+  }
 
-  // Start the server; it writes its bound address to the state file (covers the
-  // auto-incremented port if ours is taken).
   const stateFile = join(tmpdir(), `grimoire-check-${process.pid}.json`);
   await rm(stateFile, { force: true });
-  const server = Bun.spawn(
-    ["bun", "src/serve.ts", "--root", root, "--host", "127.0.0.1", "--port", "43219", "--no-watch", "--daemon-state", stateFile],
-    { stdout: "ignore", stderr: "ignore" },
-  );
+  const serveArgs = [
+    "serve", "--root", root, "--host", "127.0.0.1",
+    "--port", "43219", "--no-watch", "--daemon-state", stateFile,
+  ];
+  const cmd = isDev ? ["bun", serveSrc, ...serveArgs] : [process.execPath, ...serveArgs];
+  const server = Bun.spawn(cmd, { stdout: "ignore", stderr: "ignore" });
 
+  // The server writes its bound address to the state file (covers the auto-bumped
+  // port if 43219 is taken).
   let base = "";
   for (let i = 0; i < 60 && !base; i++) {
     try {
@@ -78,7 +100,7 @@ async function main() {
   if (!base) {
     server.kill();
     process.stderr.write(`${RED}✗${RESET} server did not start\n`);
-    process.exit(1);
+    return 1;
   }
 
   const manifest = (await (await fetch(`${base}/api/manifest`)).json()) as {
@@ -101,7 +123,6 @@ async function main() {
     page.on("console", (m) => {
       if (m.type() === "error") errors.push(m.text().split("\n")[0]);
     });
-    // pin the locale before app scripts run
     await page.addInitScript((l) => {
       try {
         localStorage.setItem("grimoire-locale", l as string);
@@ -111,7 +132,6 @@ async function main() {
     }, lang);
 
     const path = note.id.split("/").map(encodeURIComponent).join("/");
-    // cache-busting query forces a fresh app instance per note
     const url = `${base}/?_check=${encodeURIComponent(note.id + ":" + lang)}#/n/${path}`;
     try {
       await page.goto(url, { waitUntil: "networkidle", timeout: 20000 });
@@ -137,10 +157,14 @@ async function main() {
   process.stdout.write(
     `\n${failures === 0 ? GREEN + "✓" : RED + "✗"} ${manifest.notes.length - failures}/${manifest.notes.length} notes rendered clean${RESET}\n`,
   );
-  process.exit(failures === 0 ? 0 : 1);
+  return failures === 0 ? 0 : 1;
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (import.meta.main) {
+  runCheck(resolve(process.argv[2] ?? process.cwd()))
+    .then((code) => process.exit(code))
+    .catch((e) => {
+      console.error(e);
+      process.exit(1);
+    });
+}

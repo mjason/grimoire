@@ -494,16 +494,29 @@ function startWatching() {
   if (cfg && existsSync(cfg)) watch(cfg, schedule);
 }
 
-// Dispatch: `grimoire start|stop|restart|status` → daemon controls; otherwise
-// (`serve` or no subcommand) run the server in the foreground.
+// Dispatch subcommands:
+//   verify              → browser-free check (compile + Mermaid syntax)
+//   check               → headless full-render check (needs Chromium)
+//   start|stop|restart|status → daemon controls
+//   serve / (none)      → run the server in the foreground
+const argv = Bun.argv.slice(1);
 const DAEMON_SUBS = ["start", "stop", "restart", "status"];
-const subcommand = Bun.argv.slice(1).find((a) => DAEMON_SUBS.includes(a));
 const onError = (e: unknown) => {
   console.error(e);
   process.exit(1);
 };
-if (subcommand) {
-  runDaemon(subcommand).catch(onError);
+if (argv.includes("verify")) {
+  import("./verify")
+    .then(({ runVerify }) => runVerify(ROOT))
+    .then((failures) => process.exit(failures === 0 ? 0 : 1))
+    .catch(onError);
+} else if (argv.includes("check")) {
+  import("./check")
+    .then(({ runCheck }) => runCheck(ROOT))
+    .then((code) => process.exit(code))
+    .catch(onError);
 } else {
-  main().catch(onError);
+  const subcommand = argv.find((a) => DAEMON_SUBS.includes(a));
+  if (subcommand) runDaemon(subcommand).catch(onError);
+  else main().catch(onError);
 }

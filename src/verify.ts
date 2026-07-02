@@ -27,8 +27,7 @@ async function loadLocales(root: string): Promise<string[]> {
   return [];
 }
 
-async function main() {
-  const root = resolve(process.argv[2] ?? process.cwd());
+export async function runVerify(root: string): Promise<number> {
   const notesDir = resolve(root, "notes");
   const locales = await loadLocales(root);
   const notes = await scanNotes(notesDir, locales);
@@ -60,10 +59,14 @@ async function main() {
   process.stdout.write(
     `\n${failures === 0 ? GREEN + "✓" : RED + "✗"} ${notes.length - failures}/${notes.length} notes OK${RESET}\n`,
   );
-  process.exit(failures === 0 ? 0 : 1);
+  return failures;
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (import.meta.main) {
+  runVerify(resolve(process.argv[2] ?? process.cwd()))
+    .then((failures) => process.exit(failures === 0 ? 0 : 1))
+    .catch((e) => {
+      console.error(e);
+      process.exit(1);
+    });
+}

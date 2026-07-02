@@ -44,7 +44,11 @@ export function lazyNote(id: string, lang: string): ComponentType<any> {
       setState({});
       loadNoteComponent(id, lang).then(
         (Comp) => alive && setState({ Comp }),
-        (e) => alive && setState({ err: String(e?.message ?? e) }),
+        (e) => {
+          const err = String(e?.message ?? e);
+          console.error(`[grimoire] Note "${id}": ${err.split("\n")[0]}`);
+          if (alive) setState({ err });
+        },
       );
       return () => {
         alive = false;

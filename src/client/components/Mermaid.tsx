@@ -53,7 +53,10 @@ export function Mermaid({ chart, children }: { chart?: string; children?: unknow
           setErr(null);
         }
       } catch (e) {
-        if (token === seqRef.current) setErr((e as Error)?.message || String(e));
+        const msg = (e as Error)?.message || String(e);
+        // Surface to the console so `bun run check` (headless) can detect it.
+        console.error(`[grimoire] Mermaid: ${msg.split("\n")[0]}`);
+        if (token === seqRef.current) setErr(msg);
       }
     })();
   }, [source, dark]);

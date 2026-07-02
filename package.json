@@ -35,6 +35,7 @@
     "compile": "bun run src/engine.ts && bun run src/compile.ts",
     "release:binaries": "bun run src/release.ts",
     "verify": "bun run src/verify.ts",
+    "check": "bun run src/check.ts",
     "new": "bun run src/scaffold.ts"
   },
   "dependencies": {

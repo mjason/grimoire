@@ -77,6 +77,13 @@ export function useLocale(): LocaleContextValue {
 function detectInitialLocale(i18n: I18nConfig | undefined, def: string): string {
   if (!i18n) return def;
   try {
+    // `?lang=xx` overrides — handy for shareable links and headless checks.
+    const q = new URLSearchParams(location.search).get("lang");
+    if (q && i18n.locales.some((l) => l.code === q)) return q;
+  } catch {
+    /* ignore */
+  }
+  try {
     const saved = localStorage.getItem("grimoire-locale");
     if (saved && i18n.locales.some((l) => l.code === saved)) return saved;
   } catch {

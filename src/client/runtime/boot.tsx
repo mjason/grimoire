@@ -19,6 +19,17 @@ import type { GrimoireConfig } from "../../types";
 // /_dep/* shims re-export from here.
 (globalThis as any).__grimoire = { preact, preactHooks, jsxRuntime, preactCompat, mdxPreact };
 
+// Funnel uncaught render errors + rejections to console.error so `check` (which
+// captures the page console headlessly) can see them.
+if (typeof window !== "undefined") {
+  window.addEventListener("error", (e) =>
+    console.error(`[grimoire] Uncaught: ${(e as ErrorEvent).error?.message ?? (e as ErrorEvent).message}`),
+  );
+  window.addEventListener("unhandledrejection", (e) =>
+    console.error(`[grimoire] Unhandled: ${(e as PromiseRejectionEvent).reason?.message ?? (e as PromiseRejectionEvent).reason}`),
+  );
+}
+
 interface Manifest {
   config: GrimoireConfig;
   notes: { id: string; segments: string[]; lang: string | null; frontmatter: Record<string, any> }[];

@@ -8,8 +8,10 @@
 //   grimoire check               # same, from the binary
 //   grimoire check /path/to/proj # another project
 //
-// Needs a Chromium/Chrome (set GRIMOIRE_CHROMIUM=/path, or one is auto-detected).
-// No browser available? `verify` is the browser-free fallback (compile + Mermaid).
+// The browser is Bun's built-in `Bun.WebView` (Bun 1.3.12+): zero deps on macOS
+// (WKWebView), and Chrome/Chromium via CDP elsewhere (auto-detected, or set
+// GRIMOIRE_CHROMIUM / BUN_CHROME_PATH). No Playwright, no separate download — so
+// this works straight from the compiled binary too.
 import { existsSync } from "node:fs";
 import { readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -21,51 +23,10 @@ const DIM = "\x1b[2m";
 const YEL = "\x1b[33m";
 const RESET = "\x1b[0m";
 
-function findChromium(): string | null {
-  const env = process.env.GRIMOIRE_CHROMIUM || process.env.CHROME_PATH;
-  if (env && existsSync(env)) return env;
-  for (const p of [
-    "/usr/bin/chromium",
-    "/usr/bin/chromium-browser",
-    "/usr/bin/google-chrome",
-    "/usr/bin/google-chrome-stable",
-    "/snap/bin/chromium",
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-  ]) {
-    if (existsSync(p)) return p;
-  }
-  return null;
-}
-
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Returns a process exit code: 0 = all clean, 1 = errors found, 2 = no browser. */
 export async function runCheck(root: string): Promise<number> {
-  // playwright-core can't be bundled into the single-file binary, so it's only
-  // present when running from a dev checkout. Load it dynamically and degrade
-  // gracefully otherwise.
-  let chromium: typeof import("playwright-core").chromium;
-  try {
-    ({ chromium } = await import("playwright-core"));
-  } catch {
-    process.stderr.write(
-      `${RED}✗${RESET} ${YEL}check${RESET} needs a browser driver that isn't in the binary.\n` +
-        `  Run ${YEL}verify${RESET} (browser-free: compile + Mermaid), or ${YEL}bun run check${RESET} from a dev checkout.\n`,
-    );
-    return 2;
-  }
-
-  const chromePath = findChromium();
-  if (!chromePath) {
-    process.stderr.write(
-      `${RED}✗${RESET} No Chromium/Chrome found.\n` +
-        `  Set ${YEL}GRIMOIRE_CHROMIUM${RESET}=/path/to/chromium, or run ${YEL}verify${RESET} ` +
-        `(browser-free: compile + Mermaid syntax).\n`,
-    );
-    return 2;
-  }
-
   // Running from source (dev) vs the compiled binary: in dev we rebuild the
   // engine first and launch the server via `bun serve.ts`; the binary already
   // embeds the engine and re-launches itself.
@@ -85,8 +46,6 @@ export async function runCheck(root: string): Promise<number> {
   const cmd = isDev ? ["bun", serveSrc, ...serveArgs] : [process.execPath, ...serveArgs];
   const server = Bun.spawn(cmd, { stdout: "ignore", stderr: "ignore" });
 
-  // The server writes its bound address to the state file (covers the auto-bumped
-  // port if 43219 is taken).
   let base = "";
   for (let i = 0; i < 60 && !base; i++) {
     try {
@@ -109,48 +68,60 @@ export async function runCheck(root: string): Promise<number> {
   };
   const defaultLocale = manifest.config?.i18n?.defaultLocale ?? "en";
 
-  const browser = await chromium.launch({ executablePath: chromePath, args: ["--no-sandbox"] });
-  const ctx = await browser.newContext();
+  // Prefer an explicitly configured Chrome path (Bun reads BUN_CHROME_PATH).
+  const chromePath = process.env.GRIMOIRE_CHROMIUM || process.env.CHROME_PATH;
+  if (chromePath && !process.env.BUN_CHROME_PATH) process.env.BUN_CHROME_PATH = chromePath;
+
+  let current: string[] = [];
+  let wv: any;
+  try {
+    wv = new (Bun as any).WebView({
+      headless: true,
+      console: (level: unknown, ...args: unknown[]) => {
+        if (String(level) === "error") current.push(args.map(String).join(" "));
+      },
+    });
+  } catch (e) {
+    server.kill();
+    await rm(stateFile, { force: true });
+    process.stderr.write(
+      `${RED}✗${RESET} couldn't launch a browser: ${(e as Error).message}\n` +
+        `  Install Chromium/Chrome (or set ${YEL}GRIMOIRE_CHROMIUM${RESET}), or run ${YEL}verify${RESET} (browser-free).\n`,
+    );
+    return 2;
+  }
 
   let failures = 0;
-  for (const note of manifest.notes) {
+  for (let i = 0; i < manifest.notes.length; i++) {
+    const note = manifest.notes[i]!;
     const lang = note.lang ?? defaultLocale;
     const label = `${note.id}${note.lang ? ` ${DIM}[${note.lang}]${RESET}` : ""}`;
-    const errors: string[] = [];
-
-    const page = await ctx.newPage();
-    page.on("pageerror", (e) => errors.push(`uncaught: ${e.message.split("\n")[0]}`));
-    page.on("console", (m) => {
-      if (m.type() === "error") errors.push(m.text().split("\n")[0]);
-    });
-    await page.addInitScript((l) => {
-      try {
-        localStorage.setItem("grimoire-locale", l as string);
-      } catch {
-        /* ignore */
-      }
-    }, lang);
+    current = [];
 
     const path = note.id.split("/").map(encodeURIComponent).join("/");
-    const url = `${base}/?_check=${encodeURIComponent(note.id + ":" + lang)}#/n/${path}`;
+    const url = `${base}/?lang=${encodeURIComponent(lang)}&_check=${i}#/n/${path}`;
     try {
-      await page.goto(url, { waitUntil: "networkidle", timeout: 20000 });
+      await wv.navigate(url);
       await sleep(1400); // let effects (incl. Mermaid) run
     } catch (e) {
-      errors.push(`navigation: ${(e as Error).message.split("\n")[0]}`);
+      current.push(`navigation: ${(e as Error).message.split("\n")[0]}`);
     }
-    await page.close();
 
+    const errors = [...new Set(current)];
     if (errors.length) {
       failures++;
       process.stdout.write(`${RED}✗${RESET} ${label}\n`);
-      for (const e of [...new Set(errors)]) process.stdout.write(`  ${RED}·${RESET} ${e}\n`);
+      for (const e of errors) process.stdout.write(`  ${RED}·${RESET} ${e}\n`);
     } else {
       process.stdout.write(`${GREEN}✓${RESET} ${label}\n`);
     }
   }
 
-  await browser.close();
+  try {
+    wv.close();
+  } catch {
+    /* ignore */
+  }
   server.kill();
   await rm(stateFile, { force: true });
 

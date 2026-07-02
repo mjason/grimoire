@@ -259,10 +259,11 @@ Linux, macOS, and Windows.
 
 Both exit non-zero and print the offending note + message, so an AI/CI can
 self-check instead of eyeballing the browser. `verify` needs nothing extra.
-`check` renders each note in headless Chromium (auto-detected, or set
-`GRIMOIRE_CHROMIUM`) and catches component exceptions, Mermaid failures, and
-console errors — it needs `playwright-core` reachable (a dev checkout, or
-`bun add playwright-core`); otherwise it says so and points you back to `verify`.
+`check` renders each note with Bun's built-in headless browser (`Bun.WebView`)
+and catches component exceptions, Mermaid failures, and console errors — no
+Playwright, no separate download, so it works straight from the binary. Zero
+extra deps on macOS (WKWebView); on Linux/Windows it drives Chromium
+(auto-detected, or set `GRIMOIRE_CHROMIUM`).
 
 ### Flags
 

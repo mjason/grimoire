@@ -25,10 +25,6 @@ async function compile() {
     join(ROOT_DIR, "src", "serve.ts"),
     "--outfile",
     outfile,
-    // playwright-core (used only by `check` from a dev checkout) can't be bundled
-    // into a single file; the binary loads it dynamically and degrades if absent.
-    "--external",
-    "playwright-core",
   ];
   if (target) cmd.push(`--target=${target}`);
 

@@ -1,6 +1,6 @@
 {
   "name": "grimoire",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "An AI-oriented, MDX-based note system that compiles to a single binary.",
   "type": "module",
   "module": "src/serve.ts",

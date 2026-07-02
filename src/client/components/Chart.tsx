@@ -29,6 +29,30 @@ export function Chart({ type = "line", data, options, height = 320, title, capti
     const isDark = document.documentElement.classList.contains("dark");
     const grid = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
     const tick = isDark ? "rgba(229,229,229,0.75)" : "rgba(64,64,64,0.85)";
+    const accent = readAccent();
+    const cartesian = !["pie", "doughnut", "radar", "polarArea"].includes(type as string);
+
+    // A dashed vertical guide that tracks the hovered column — only meaningful on
+    // charts with an x-axis, so it's attached per-chart (not globally registered).
+    const crosshair = {
+      id: "crosshair",
+      afterDatasetsDraw(chart: any) {
+        const active = chart.getActiveElements();
+        if (!active.length) return;
+        const { ctx, chartArea } = chart;
+        const x = active[0].element.x;
+        ctx.save();
+        ctx.globalAlpha = 0.55;
+        ctx.beginPath();
+        ctx.moveTo(x, chartArea.top);
+        ctx.lineTo(x, chartArea.bottom);
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = accent;
+        ctx.stroke();
+        ctx.restore();
+      },
+    };
 
     instance.current = new ChartJS(canvas.current, {
       type,
@@ -37,19 +61,34 @@ export function Chart({ type = "line", data, options, height = 320, title, capti
         responsive: true,
         maintainAspectRatio: false,
         interaction: { mode: "index", intersect: false },
+        // Hand cursor whenever the pointer is over data, so it reads as interactive.
+        onHover: (event, els) => {
+          const t = event.native?.target as HTMLElement | null;
+          if (t) t.style.cursor = els.length ? "pointer" : "default";
+        },
         plugins: {
           legend: { labels: { color: tick, usePointStyle: true, boxWidth: 8 } },
-          tooltip: { padding: 10, cornerRadius: 8, usePointStyle: true },
+          tooltip: {
+            padding: 10,
+            cornerRadius: 8,
+            usePointStyle: true,
+            boxPadding: 6,
+            backgroundColor: isDark ? "rgba(23,23,23,0.96)" : "rgba(255,255,255,0.98)",
+            titleColor: isDark ? "rgba(245,245,245,0.98)" : "rgba(23,23,23,0.95)",
+            bodyColor: isDark ? "rgba(212,212,212,0.92)" : "rgba(64,64,64,0.92)",
+            borderColor: accent,
+            borderWidth: 1,
+          },
         },
-        scales:
-          type === "pie" || type === "doughnut" || type === "radar" || type === "polarArea"
-            ? undefined
-            : {
-                x: { grid: { color: grid }, ticks: { color: tick } },
-                y: { grid: { color: grid }, ticks: { color: tick } },
-              },
+        scales: cartesian
+          ? {
+              x: { grid: { color: grid }, ticks: { color: tick } },
+              y: { grid: { color: grid }, ticks: { color: tick } },
+            }
+          : undefined,
         ...options,
       },
+      plugins: cartesian ? [crosshair] : [],
     });
     return () => instance.current?.destroy();
     // Re-create when the data or type changes.
@@ -97,10 +136,14 @@ function withAccentColors(data: ChartData, type: ChartType): ChartData {
         backgroundColor: palette,
         borderColor: "rgba(255,255,255,0.85)",
         borderWidth: 2,
+        // Pop the hovered slice outward.
+        hoverOffset: 8,
+        hoverBorderColor: "rgba(255,255,255,0.95)",
       };
     }
     const c = palette[i % palette.length]!;
-    const fill = type === "line" || type === "radar" ? `${c}22` : `${c}cc`;
+    const isLine = type === "line" || type === "radar";
+    const fill = isLine ? `${c}22` : `${c}cc`;
     return {
       ...ds,
       borderColor: c,
@@ -109,7 +152,13 @@ function withAccentColors(data: ChartData, type: ChartType): ChartData {
       borderWidth: 2,
       tension: 0.35,
       pointRadius: 3,
-      pointHoverRadius: 5,
+      // Stronger hover feedback: grow + ring the point, thicken lines, saturate bars.
+      pointHoverRadius: 6,
+      pointHoverBorderWidth: 2,
+      pointHoverBorderColor: "#fff",
+      hoverBorderColor: c,
+      hoverBorderWidth: isLine ? 3 : 2,
+      hoverBackgroundColor: isLine ? fill : c,
     };
   });
   return { ...data, datasets: datasets ?? [] };

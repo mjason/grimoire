@@ -22,7 +22,8 @@ export function tokenizeDmagic(src: string): Token[] {
   const push = (cls: string | null, value: string) => value && out.push({ cls, value });
   const ident = /[\p{L}_][\p{L}\p{N}_]*/uy;
   const number = /(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/y;
-  const op = /\*\*|\/\/|<=|>=|==|!=|[+\-*/%<>=]/y;
+  // ASCII + common Unicode operators (− × ÷ ≥ ≤ ≠ ∧ ∨) the DSL uses in prose.
+  const op = /\*\*|\/\/|<=|>=|==|!=|&&|\|\||[+\-*/%<>=−×÷≥≤≠∧∨]/uy;
   let i = 0;
 
   while (i < src.length) {
@@ -33,6 +34,25 @@ export function tokenizeDmagic(src: string): Token[] {
       let j = i + 1;
       while (j < src.length && /\s/.test(src[j]!)) j++;
       push(null, src.slice(i, j));
+      i = j;
+      continue;
+    }
+
+    // comment (# … to end of line)
+    if (ch === "#") {
+      let j = i + 1;
+      while (j < src.length && src[j] !== "\n") j++;
+      push("hljs-comment", src.slice(i, j));
+      i = j;
+      continue;
+    }
+
+    // string literal ("…" or '…')
+    if (ch === '"' || ch === "'") {
+      let j = i + 1;
+      while (j < src.length && src[j] !== ch && src[j] !== "\n") j++;
+      if (src[j] === ch) j++; // include the closing quote
+      push("hljs-string", src.slice(i, j));
       i = j;
       continue;
     }

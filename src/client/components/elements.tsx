@@ -165,11 +165,11 @@ export function A({ href = "", children, ...rest }: { href?: string; children?: 
   );
 }
 
-/** Wrap raw markdown tables so they scroll horizontally on small screens. */
-export function Table(props: { children?: ComponentChildren; [k: string]: any }) {
+/** Wrap raw markdown tables so they remain readable and scroll on small screens. */
+export function Table({ class: className = "", ...props }: { children?: ComponentChildren; [k: string]: any }) {
   return (
-    <div class="my-6 overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-800">
-      <table {...props} class="!my-0 w-full" />
+    <div class="mdx-table my-6 overflow-x-auto rounded-xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900/40">
+      <table {...props} class={className} />
     </div>
   );
 }

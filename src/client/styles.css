@@ -69,28 +69,61 @@ body {
    code-viewer component, which owns its border/background/rounding. Styling the
    raw <pre> here would give it a second border + rounded corners inside the
    viewer's container (a weird inner rounding under the filename header). */
-.prose :where(table) {
-  @apply overflow-hidden;
+/* Markdown tables own their presentation instead of mixing the typography
+   plugin's table rules with the responsive wrapper in elements.tsx. */
+.mdx-table > table {
+  margin: 0;
+  width: 100%;
+  border-collapse: collapse;
   font-size: 0.925em;
+  line-height: 1.5;
 }
-/* Generous, even cell padding — the `table` element selector raises specificity
-   above the typography plugin's :where() rules (which also strip the first/last
-   cell's horizontal padding, undesirable inside our bordered wrapper). */
-.prose table th,
-.prose table td {
-  padding: 0.625rem 1rem;
+.mdx-table th,
+.mdx-table td {
+  padding: 0.6875rem 1rem;
   vertical-align: top;
 }
-.prose table th:first-child,
-.prose table td:first-child {
-  padding-inline-start: 1rem;
+.mdx-table th {
+  white-space: nowrap;
+  background-color: #fafafa;
+  color: #404040;
+  font-weight: 600;
 }
-.prose table th:last-child,
-.prose table td:last-child {
-  padding-inline-end: 1rem;
+.mdx-table thead {
+  border-bottom: 1px solid #e5e5e5;
 }
-.prose table thead th {
-  background-color: color-mix(in srgb, currentColor 4%, transparent);
+.mdx-table tbody tr + tr {
+  border-top: 1px solid #f5f5f5;
+}
+.mdx-table tbody tr {
+  transition: background-color 150ms ease;
+}
+.mdx-table tbody tr:hover {
+  background-color: #fafafa;
+}
+/* GFM emits align attributes; explicit CSS is needed because typography's
+   default th alignment otherwise wins over those presentational attributes. */
+.mdx-table [align="left"] {
+  text-align: left;
+}
+.mdx-table [align="center"] {
+  text-align: center;
+}
+.mdx-table [align="right"] {
+  text-align: right;
+}
+.dark .mdx-table th {
+  background-color: color-mix(in srgb, white 4%, transparent);
+  color: #d4d4d4;
+}
+.dark .mdx-table thead {
+  border-color: #404040;
+}
+.dark .mdx-table tbody tr + tr {
+  border-color: color-mix(in srgb, white 7%, transparent);
+}
+.dark .mdx-table tbody tr:hover {
+  background-color: color-mix(in srgb, white 3%, transparent);
 }
 
 /* --- highlight.js (github-style, theme-aware) ---------------------------- */

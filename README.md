@@ -31,6 +31,9 @@ and refresh — no rebuild of the binary.
   diagrams (` ```mermaid ` fenced blocks), usable straight from MDX.
 - **AI-friendly** — author a note by writing one `.mdx` file; add a brand-new
   component by dropping one `.tsx` file. No registration, no wiring.
+- **Shareable single-file export** — the **Download HTML** button on any note bakes
+  it into one self-contained `.html` file (styles, components, charts, and any
+  Mermaid diagrams inlined) that renders offline, no server needed.
 - **Folders are categories**, **tags & search**, **dark mode**, configurable accent.
 - **One binary** — `bun build --compile` packs the whole engine (incl. the MDX
   compiler and Tailwind) into a ~100 MB standalone executable.

@@ -46,6 +46,27 @@ async function buildDepChunks(): Promise<void> {
 
 const ENGINE_OUT = join(DIST_DIR, "engine");
 const BOOT_ENTRY = join(CLIENT_DIR, "runtime", "boot.tsx");
+const STANDALONE_ENTRY = join(CLIENT_DIR, "runtime", "standalone.tsx");
+
+/** Bundle one client entry into ENGINE_OUT/<outName>. Shared by the SPA boot
+ *  bundle (app.js) and the single-note export bundle (standalone.js). Both keep
+ *  mermaid external — it's dynamically imported and resolved via an import map. */
+async function bundleEntry(entry: string, outName: string): Promise<number> {
+  const result = await Bun.build({
+    entrypoints: [entry],
+    target: "browser",
+    format: "esm",
+    minify: true,
+    define: { "process.env.NODE_ENV": '"production"' },
+    external: ["mermaid"],
+  });
+  if (!result.success) {
+    for (const log of result.logs) console.error(log);
+    throw new Error(`${outName} bundle failed`);
+  }
+  await writeFile(join(ENGINE_OUT, outName), await result.outputs[0]!.text(), "utf8");
+  return result.outputs.reduce((n, o) => n + (o.size ?? 0), 0);
+}
 
 async function walk(dir: string, match: (n: string) => boolean): Promise<string[]> {
   const out: string[] = [];
@@ -62,23 +83,13 @@ export async function buildEngine(): Promise<void> {
   const started = performance.now();
   await mkdir(ENGINE_OUT, { recursive: true });
 
-  const result = await Bun.build({
-    entrypoints: [BOOT_ENTRY],
-    outdir: ENGINE_OUT,
-    target: "browser",
-    format: "esm",
-    minify: true,
-    naming: { entry: "app.[ext]" },
-    define: { "process.env.NODE_ENV": '"production"' },
-    // Keep mermaid out of the engine bundle — the <Mermaid> component imports it
-    // dynamically at runtime, resolved via the page import map to /_dep/mermaid.
-    external: ["mermaid"],
-  });
-  if (!result.success) {
-    for (const log of result.logs) console.error(log);
-    throw new Error("engine bundle failed");
-  }
-  const bytes = result.outputs.reduce((n, o) => n + (o.size ?? 0), 0);
+  // The SPA boot bundle (app.js) and the single-note export bundle
+  // (standalone.js, embedded and inlined by the export endpoint). Mermaid stays
+  // external for both — imported dynamically, resolved via the page import map.
+  const [bytes] = await Promise.all([
+    bundleEntry(BOOT_ENTRY, "app.js"),
+    bundleEntry(STANDALONE_ENTRY, "standalone.js"),
+  ]);
 
   // Pre-bundle optional dep chunks (chart.js, preact/compat) for user components.
   await buildDepChunks();

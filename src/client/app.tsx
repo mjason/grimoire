@@ -284,6 +284,10 @@ function Content({
 
 function NoteView({ note }: { note: NoteMeta }) {
   const Body = note.Component;
+  const { t } = useLocale();
+  const exportHref =
+    `/api/export/${note.id.split("/").map(encodeURIComponent).join("/")}` +
+    `?lang=${encodeURIComponent(note.lang)}`;
   return (
     <article class="animate-fade">
       <header class="mb-8 border-b border-neutral-200 pb-6 dark:border-neutral-800">
@@ -310,6 +314,17 @@ function NoteView({ note }: { note: NoteMeta }) {
               #{t}
             </a>
           ))}
+          <a
+            href={exportHref}
+            download
+            title={t("note.download.hint")}
+            class="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 px-2.5 py-1 text-xs font-medium text-neutral-500 no-underline transition hover:border-[var(--accent)] hover:text-[var(--accent)] dark:border-neutral-700 dark:text-neutral-400"
+          >
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 21h16" />
+            </svg>
+            {t("note.download")}
+          </a>
         </div>
       </header>
       <div class="prose prose-neutral max-w-none dark:prose-invert">

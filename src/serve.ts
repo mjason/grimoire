@@ -22,6 +22,7 @@ import { runDaemon, writeDaemonState } from "./daemon";
 
 // --- Embedded engine assets (bundled into the binary; read from disk in dev) --
 import engineJs from "../dist/engine/app.js" with { type: "text" };
+import standaloneJs from "../dist/engine/standalone.js" with { type: "text" };
 import stylesCss from "./client/styles.css" with { type: "text" };
 import engineCandidates from "../dist/engine/candidates.txt" with { type: "text" };
 import twIndexCss from "../node_modules/tailwindcss/index.css" with { type: "text" };
@@ -151,11 +152,19 @@ const ACCENTS: Record<string, [string, string]> = {
 function esc(s: string) {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 }
-function indexHtml(config: GrimoireConfig): string {
+/** The accent CSS custom properties for a config's theme colour. */
+function accentVars(config: GrimoireConfig): string {
   const [accent, fg] = ACCENTS[config.theme?.accent ?? "violet"] ?? ACCENTS.violet!;
+  return `:root{--accent:${accent};--accent-fg:${fg};--accent-soft:color-mix(in srgb, ${accent} 14%, transparent);}`;
+}
+/** Inline script (runs before paint) that applies the persisted/desired color mode. */
+function themeBootScript(config: GrimoireConfig): string {
   const mode = config.theme?.defaultMode ?? "system";
+  return `(()=>{try{var m=localStorage.getItem("grimoire-mode")||${JSON.stringify(mode)};document.documentElement.classList.toggle("dark",m==="dark"||(m==="system"&&matchMedia("(prefers-color-scheme: dark)").matches));}catch(e){}})();`;
+}
+function indexHtml(config: GrimoireConfig): string {
   const lang = config.i18n?.defaultLocale ?? "en";
-  const boot = `(()=>{try{var m=localStorage.getItem("grimoire-mode")||${JSON.stringify(mode)};document.documentElement.classList.toggle("dark",m==="dark"||(m==="system"&&matchMedia("(prefers-color-scheme: dark)").matches));}catch(e){}})();`;
+  const boot = themeBootScript(config);
   const importmap = JSON.stringify({
     imports: {
       preact: "/_dep/preact",
@@ -175,11 +184,111 @@ function indexHtml(config: GrimoireConfig): string {
 <meta name="description" content="${esc(config.description ?? "")}"/>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%93%3C/text%3E%3C/svg%3E"/>
 <link rel="stylesheet" href="/app.css"/>
-<style>:root{--accent:${accent};--accent-fg:${fg};--accent-soft:color-mix(in srgb, ${accent} 14%, transparent);}</style>
+<style>${accentVars(config)}</style>
 <script>${boot}</script>
 <script type="importmap">${importmap}</script>
 </head><body><div id="app"></div>
 <script type="module" src="/app.js"></script>
+</body></html>`;
+}
+
+// --- Single-file export ------------------------------------------------------
+// Assemble one note into a fully self-contained, shareable HTML file: inlined
+// CSS + theme boot, the compiled note body, every user component transpiled and
+// inlined as a data: URL module, and the chart.js / mermaid dep chunks only when
+// the note actually needs them. Opens and renders with no server and no network.
+const b64 = (s: string) => Buffer.from(s, "utf8").toString("base64");
+const jsDataUrl = (js: string) => `data:text/javascript;base64,${b64(js)}`;
+
+/** Bare specifier → engine shim, mirroring the SPA import map in indexHtml but
+ *  resolved to inline data: URLs so the file has no network dependencies. */
+function shimDataUrl(name: string): string {
+  return jsDataUrl(depModule(name)!);
+}
+
+async function buildExportHtml(entry: NoteEntry): Promise<string> {
+  const config = state.config;
+  const lang = entry.lang ?? config.i18n?.defaultLocale ?? "en";
+
+  // Compiled note body (reuse the per-note cache the note API populates).
+  let body = noteCache.get(entry.file);
+  if (body == null) {
+    body = await compileNote(entry.file);
+    noteCache.set(entry.file, body);
+  }
+
+  // Transpile every user component (reuse the cache) and inline it as a module.
+  const components = await Promise.all(
+    state.components.map(async (c) => {
+      let js = compCache.get(c.file);
+      if (js == null) {
+        js = await transpileComponent(c.file);
+        compCache.set(c.file, js);
+      }
+      return { name: c.name, src: js };
+    }),
+  );
+
+  // Only ship the heavy dep chunks when they're reachable: mermaid if the note
+  // renders a diagram, chart.js if a user component imports it (the built-in
+  // <Chart> bundles chart.js into standalone.js already).
+  const usesMermaid = /\bmermaid\b|\bMermaid\b/.test(body);
+  const usesChart = components.some((c) => /["']chart\.js(\/auto)?["']/.test(c.src));
+
+  const imports: Record<string, string> = {};
+  if (components.length) {
+    imports["preact"] = shimDataUrl("preact");
+    imports["preact/hooks"] = shimDataUrl("preact/hooks");
+    imports["preact/jsx-runtime"] = shimDataUrl("preact/jsx-runtime");
+    imports["preact/jsx-dev-runtime"] = shimDataUrl("preact/jsx-dev-runtime");
+    imports["preact/compat"] = shimDataUrl("preact-compat");
+    imports["@mdx-js/preact"] = shimDataUrl("mdx-preact");
+  }
+  if (usesChart) {
+    const url = jsDataUrl(depChartjs);
+    imports["chart.js"] = url;
+    imports["chart.js/auto"] = url;
+  }
+  if (usesMermaid) imports["mermaid"] = jsDataUrl(depMermaid);
+
+  const payload = {
+    config: {
+      title: config.title,
+      description: config.description,
+      author: config.author,
+      footer: config.footer,
+    },
+    note: {
+      id: entry.id,
+      segments: entry.segments,
+      lang,
+      frontmatter: entry.frontmatter,
+      body,
+    },
+    components: components.map((c) => ({ name: c.name, module: jsDataUrl(c.src) })),
+  };
+  // Serialize for an inline <script>: escape `<` so a value can't close the tag.
+  const payloadJs = JSON.stringify(payload).replace(/</g, "\\u003c");
+
+  const fm = entry.frontmatter ?? {};
+  const title = (fm.title as string) ?? entry.id.split("/").pop() ?? "Untitled";
+  const pageTitle = config.title ? `${title} · ${config.title}` : title;
+  const importmap = Object.keys(imports).length
+    ? `\n<script type="importmap">${JSON.stringify({ imports })}</script>`
+    : "";
+
+  return `<!doctype html><html lang="${esc(lang)}"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>${esc(pageTitle)}</title>
+<meta name="description" content="${esc(String(fm.description ?? config.description ?? ""))}"/>
+<meta name="generator" content="Grimoire"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%93%3C/text%3E%3C/svg%3E"/>
+<style>${accentVars(config)}</style>
+<style>${state.css}</style>
+<script>${themeBootScript(config)}</script>${importmap}
+</head><body><div id="app"></div>
+<script>window.__GRIMOIRE__=${payloadJs}</script>
+<script type="module" src="${jsDataUrl(standaloneJs)}"></script>
 </body></html>`;
 }
 
@@ -283,6 +392,30 @@ async function main() {
           return txt(body, "text/plain; charset=utf-8");
         } catch (e) {
           return new Response(`compile error: ${(e as Error).message}`, { status: 500 });
+        }
+      }
+
+      if (p.startsWith("/api/export/")) {
+        const id = safeDecode(p.slice("/api/export/".length));
+        if (id == null) return new Response("bad request", { status: 400 });
+        const entry = resolveNoteEntry(id, url.searchParams.get("lang"));
+        if (!entry) return new Response(`note not found: ${id}`, { status: 404 });
+        try {
+          const html = await buildExportHtml(entry);
+          const inline = url.searchParams.get("inline") === "1";
+          const base = (id.replace(/[/\\]+/g, "-").replace(/[^\w.-]+/g, "") || "note") + ".html";
+          const disposition = inline
+            ? "inline"
+            : `attachment; filename="${base}"; filename*=UTF-8''${encodeURIComponent(base)}`;
+          return new Response(html, {
+            headers: {
+              "content-type": "text/html; charset=utf-8",
+              "content-disposition": disposition,
+              ...NOCACHE,
+            },
+          });
+        } catch (e) {
+          return new Response(`export error: ${(e as Error).message}`, { status: 500 });
         }
       }
 

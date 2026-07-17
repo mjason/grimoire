@@ -75,7 +75,7 @@ order: 2
 
 ## DataTable
 
-可搜索、可分页的表格。省略时会从键名推断列；这里我们显式固定了列的顺序。
+基于 TanStack Table 的可搜索、可排序、可分页表格。省略时会从键名推断列；这里我们显式固定了列的顺序。大数据可设置 `pageSize={0}` 和 `virtualize="auto"`（或直接使用 `virtualize`）启用虚拟行。
 
 <DataTable
   searchable

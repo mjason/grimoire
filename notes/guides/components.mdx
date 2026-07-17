@@ -76,8 +76,9 @@ Part-to-whole breakdowns. A single dataset, one slice per label.
 
 ## DataTable
 
-Searchable, paginated tables. Columns are inferred from keys when omitted; here
-we pin order explicitly.
+Searchable, sortable and paginated tables powered by TanStack Table. Columns are
+inferred from keys when omitted; here we pin order explicitly. For large data,
+set `pageSize={0}` and `virtualize="auto"` (or `virtualize`) to use virtual rows.
 
 <DataTable
   searchable

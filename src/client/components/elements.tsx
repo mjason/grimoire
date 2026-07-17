@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { ComponentChildren } from "preact";
+import { TABLE_CLASS, TABLE_FRAME_CLASS, TABLE_SCROLL_CLASS } from "./tableStyles";
 
 /** Copy text robustly: Clipboard API when available, else execCommand fallback
  *  (needed in insecure contexts — e.g. opening the binary over a LAN IP). */
@@ -168,8 +169,10 @@ export function A({ href = "", children, ...rest }: { href?: string; children?: 
 /** Wrap raw markdown tables so they remain readable and scroll on small screens. */
 export function Table({ class: className = "", ...props }: { children?: ComponentChildren; [k: string]: any }) {
   return (
-    <div class="mdx-table my-6 overflow-x-auto rounded-xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900/40">
-      <table {...props} class={className} />
+    <div class={TABLE_FRAME_CLASS}>
+      <div class={TABLE_SCROLL_CLASS}>
+        <table {...props} class={`${TABLE_CLASS} ${className}`.trim()} />
+      </div>
     </div>
   );
 }

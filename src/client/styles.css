@@ -65,65 +65,126 @@ body {
 .prose :where(code):not(pre code) {
   font-weight: 600;
 }
+.prose :where(code):not(pre code)::before,
+.prose :where(code):not(pre code)::after {
+  content: none;
+}
 /* Note: no `.prose pre` styling — every code block renders through the <Pre>
    code-viewer component, which owns its border/background/rounding. Styling the
    raw <pre> here would give it a second border + rounded corners inside the
    viewer's container (a weird inner rounding under the filename header). */
-/* Markdown tables own their presentation instead of mixing the typography
-   plugin's table rules with the responsive wrapper in elements.tsx. */
-.mdx-table > table {
+/* Markdown and structured data tables share one presentation. Both wrappers
+   are `not-prose`, so the typography plugin never participates in layout. */
+.grimoire-table {
   margin: 0;
   width: 100%;
   border-collapse: collapse;
   font-size: 0.925em;
   line-height: 1.5;
 }
-.mdx-table th,
-.mdx-table td {
-  padding: 0.6875rem 1rem;
+.grimoire-table:has(tr > :nth-child(3)) {
+  min-width: 32rem;
+}
+.grimoire-table:has(tr > :nth-child(4)) {
+  min-width: 40rem;
+}
+.grimoire-table:has(tr > :nth-child(5)) {
+  min-width: 46rem;
+}
+.grimoire-table th,
+.grimoire-table td {
+  padding: 0.625rem 0.875rem;
+  text-align: start;
   vertical-align: top;
 }
-.mdx-table th {
+.grimoire-table th {
   white-space: nowrap;
   background-color: #fafafa;
   color: #404040;
   font-weight: 600;
 }
-.mdx-table thead {
+.grimoire-table thead {
   border-bottom: 1px solid #e5e5e5;
 }
-.mdx-table tbody tr + tr {
+.grimoire-table tbody tr + tr {
   border-top: 1px solid #f5f5f5;
 }
-.mdx-table tbody tr {
+.grimoire-table tbody tr {
   transition: background-color 150ms ease;
 }
-.mdx-table tbody tr:hover {
+.grimoire-table tbody tr:hover {
   background-color: #fafafa;
+}
+.grimoire-table th > button {
+  display: inline-flex;
+  width: 100%;
+  align-items: center;
+  justify-content: inherit;
+  gap: 0.25rem;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.grimoire-table .table-empty {
+  padding-block: 2rem;
+  color: #a3a3a3;
+  text-align: center;
 }
 /* GFM emits align attributes; explicit CSS is needed because typography's
    default th alignment otherwise wins over those presentational attributes. */
-.mdx-table [align="left"] {
+.grimoire-table [align="left"] {
   text-align: left;
 }
-.mdx-table [align="center"] {
+.grimoire-table [align="center"] {
   text-align: center;
 }
-.mdx-table [align="right"] {
+.grimoire-table [align="right"] {
   text-align: right;
 }
-.dark .mdx-table th {
+.grimoire-table-virtual {
+  display: grid;
+}
+.grimoire-table-virtual thead {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  display: grid;
+}
+.grimoire-table-virtual tbody {
+  position: relative;
+  display: grid;
+}
+.grimoire-table-virtual tr {
+  display: flex;
+  width: 100%;
+}
+.grimoire-table-virtual tbody tr {
+  position: absolute;
+}
+.grimoire-table-virtual th,
+.grimoire-table-virtual td {
+  display: flex;
+  align-items: center;
+}
+.dark .grimoire-table th {
   background-color: color-mix(in srgb, white 4%, transparent);
   color: #d4d4d4;
 }
-.dark .mdx-table thead {
+.dark .grimoire-table thead {
   border-color: #404040;
 }
-.dark .mdx-table tbody tr + tr {
+.dark .grimoire-table tbody tr + tr {
   border-color: color-mix(in srgb, white 7%, transparent);
 }
-.dark .mdx-table tbody tr:hover {
+.dark .grimoire-table tbody tr:hover {
   background-color: color-mix(in srgb, white 3%, transparent);
+}
+
+@media print {
+  .data-table > div {
+    height: auto !important;
+    overflow: visible !important;
+  }
 }
 
 /* --- highlight.js (github-style, theme-aware) ---------------------------- */

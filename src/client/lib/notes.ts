@@ -164,31 +164,52 @@ export function collectTags(notes: NoteMeta[]): TagCount[] {
     .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
 }
 
-/** Lightweight client-side fuzzy-ish search over title/description/tags. */
-export function searchNotes(notes: NoteMeta[], query: string): NoteMeta[] {
+/**
+ * Lightweight client-side search: every term must appear somewhere, and terms
+ * found in the title weigh more. Shared by notes and cards.
+ */
+function rank<T>(items: T[], query: string, fields: (item: T) => { title: string; rest: string[] }): T[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
   const terms = q.split(/\s+/);
-  const score = (note: NoteMeta): number => {
-    const haystack = [
-      note.title,
-      note.description ?? "",
-      note.tags.join(" "),
-      note.id,
-    ]
-      .join(" ")
-      .toLowerCase();
+  const score = (item: T): number => {
+    const { title, rest } = fields(item);
+    const lowerTitle = title.toLowerCase();
+    const haystack = [title, ...rest].join(" ").toLowerCase();
     let s = 0;
-    for (const t of terms) {
-      const idx = haystack.indexOf(t);
-      if (idx === -1) return -1;
-      s += note.title.toLowerCase().includes(t) ? 3 : 1;
+    for (const term of terms) {
+      if (!haystack.includes(term)) return -1;
+      s += lowerTitle.includes(term) ? 3 : 1;
     }
     return s;
   };
-  return notes
-    .map((n) => ({ n, s: score(n) }))
+  return items
+    .map((item) => ({ item, s: score(item) }))
     .filter((x) => x.s >= 0)
     .sort((a, b) => b.s - a.s)
-    .map((x) => x.n);
+    .map((x) => x.item);
+}
+
+export function searchNotes(notes: NoteMeta[], query: string): NoteMeta[] {
+  return rank(notes, query, (n) => ({
+    title: n.title,
+    rest: [n.description ?? "", n.tags.join(" "), n.id],
+  }));
+}
+
+export interface SearchableCard {
+  id: string;
+  title: string;
+  description?: string;
+  excerpt?: string;
+  tags: string[];
+  deck: string;
+}
+
+/** The same search, over card titles, bodies, tags and deck names. */
+export function searchCards<T extends SearchableCard>(cards: T[], query: string): T[] {
+  return rank(cards, query, (c) => ({
+    title: c.title,
+    rest: [c.description ?? "", c.excerpt ?? "", c.tags.join(" "), c.deck, c.id],
+  }));
 }

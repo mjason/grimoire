@@ -1,4 +1,4 @@
-import { useMemo, useState } from "preact/hooks";
+import { useEffect, useMemo, useState } from "preact/hooks";
 import type { NoteMeta } from "../types";
 import type { GrimoireConfig } from "../types";
 import {
@@ -7,13 +7,19 @@ import {
   formatDate,
   notesForLocale,
   resolveNotes,
+  searchCards,
   searchNotes,
   type RawNote,
   type TreeNode,
 } from "./lib/notes";
-import { hrefFor, noteHref, useRoute, type Route } from "./lib/router";
+import { cardHref, hrefFor, noteHref, useRoute, type Route } from "./lib/router";
+import { CurrentEntryProvider, useSite, type CardMeta } from "./lib/site";
 import { ThemeToggle } from "./components/ThemeToggle";
+import { ThemePicker } from "./components/ThemePicker";
 import { LanguageSwitcher } from "./components/LanguageSwitcher";
+import { Connections } from "./components/Connections";
+import { GraphView } from "./components/GraphView";
+import { CardPage, CardsIndex } from "./components/Cards";
 import { useLocale } from "./i18n";
 
 export function App({ config, rawNotes }: { config: GrimoireConfig; rawNotes: RawNote[] }) {
@@ -33,13 +39,14 @@ export function App({ config, rawNotes }: { config: GrimoireConfig; rawNotes: Ra
   return (
     <div class="min-h-screen lg:flex">
       {/* Mobile top bar */}
-      <header class="sticky top-0 z-30 flex items-center justify-between border-b border-neutral-200 bg-white/80 px-4 py-3 backdrop-blur lg:hidden dark:border-neutral-800 dark:bg-neutral-950/80">
+      <header class="grimoire-nav sticky top-0 z-30 flex items-center justify-between border-b border-neutral-200 bg-white/80 px-4 py-3 backdrop-blur lg:hidden dark:border-neutral-800 dark:bg-neutral-950/80">
         <a href="#/" class="flex items-center gap-2 font-semibold no-underline">
           <span>📓</span>
           <span>{config.title}</span>
         </a>
         <div class="flex items-center gap-1">
           <LanguageSwitcher />
+          <ThemePicker />
           <ThemeToggle />
           <button
             onClick={() => setNavOpen((o) => !o)}
@@ -92,22 +99,29 @@ function Sidebar(props: {
 }) {
   const { config, tree, tags, notes, route, open, onNavigate } = props;
   const { t } = useLocale();
+  const site = useSite();
   const [query, setQuery] = useState("");
   const results = useMemo(() => searchNotes(notes, query), [notes, query]);
+  const cardResults = useMemo(() => searchCards(site.cards, query), [site.cards, query]);
 
   return (
     <aside
-      class={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-neutral-200 bg-neutral-50/60 backdrop-blur transition-transform dark:border-neutral-800 dark:bg-neutral-900/60 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${
+      class={`grimoire-nav fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-neutral-200 bg-neutral-50/60 backdrop-blur transition-transform dark:border-neutral-800 dark:bg-neutral-900/60 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${
         open ? "translate-x-0" : "-translate-x-full"
       }`}
     >
       <div class="flex items-center justify-between px-5 py-5">
-        <a href="#/" onClick={onNavigate} class="flex items-center gap-2 text-lg font-bold no-underline">
+        <a
+          href="#/"
+          onClick={onNavigate}
+          class="flex min-w-0 items-center gap-2 text-[1.125em] font-bold no-underline"
+        >
           <span class="text-2xl">📓</span>
-          <span class="leading-tight">{config.title}</span>
+          <span class="truncate leading-tight">{config.title}</span>
         </a>
-        <span class="hidden items-center lg:flex">
+        <span class="hidden shrink-0 items-center lg:flex">
           <LanguageSwitcher />
+          <ThemePicker />
           <ThemeToggle />
         </span>
       </div>
@@ -123,20 +137,27 @@ function Sidebar(props: {
             value={query}
             onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
             placeholder={t("search.placeholder")}
-            class="w-full rounded-lg border border-neutral-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:accent-ring dark:border-neutral-700 dark:bg-neutral-800"
+            class="w-full rounded-lg border border-neutral-200 bg-white py-2 pl-9 pr-3 text-[0.875em] outline-none focus:accent-ring dark:border-neutral-700 dark:bg-neutral-800"
           />
         </div>
       </div>
 
-      <nav class="flex-1 overflow-y-auto px-3 pb-6 text-sm">
+      <NavPills route={route} onNavigate={onNavigate} />
+
+      <nav class="flex-1 overflow-y-auto px-3 pb-6 text-[0.875em]">
         {query.trim() ? (
-          <SearchList results={results} route={route} onNavigate={onNavigate} />
+          <SearchList
+            results={results}
+            cards={cardResults}
+            route={route}
+            onNavigate={onNavigate}
+          />
         ) : (
           <>
             <TreeView node={tree} route={route} onNavigate={onNavigate} depth={0} />
             {tags.length > 0 && (
               <div class="mt-8 border-t border-neutral-200/70 pt-5 dark:border-neutral-800">
-                <div class="px-2.5 pb-2.5 text-[0.7rem] font-semibold uppercase tracking-wider text-neutral-400">
+                <div class="grimoire-category px-2.5 pb-2.5 text-neutral-400">
                   {t("nav.tags")}
                 </div>
                 <div class="flex flex-wrap gap-1.5 px-2.5">
@@ -145,7 +166,7 @@ function Sidebar(props: {
                       key={t.tag}
                       href={hrefFor({ kind: "tag", tag: t.tag })}
                       onClick={onNavigate}
-                      class={`rounded-full border px-2.5 py-1 text-xs no-underline transition ${
+                      class={`rounded-full border px-2.5 py-1 text-[0.75em] no-underline transition ${
                         route.kind === "tag" && route.tag === t.tag
                           ? "accent-bg border-transparent"
                           : "border-neutral-200 text-neutral-600 hover:border-[var(--accent)] hover:text-[var(--accent)] dark:border-neutral-700 dark:text-neutral-300"
@@ -163,11 +184,44 @@ function Sidebar(props: {
       </nav>
 
       {config.footer && (
-        <div class="border-t border-neutral-200 px-5 py-3 text-xs text-neutral-400 dark:border-neutral-800">
+        <div class="border-t border-neutral-200 px-5 py-3 text-[0.75em] text-neutral-400 dark:border-neutral-800">
           {config.footer}
         </div>
       )}
     </aside>
+  );
+}
+
+/** Top-level destinations that aren't a single note: the graph and the card deck. */
+function NavPills({ route, onNavigate }: { route: Route; onNavigate: () => void }) {
+  const { t } = useLocale();
+  const site = useSite();
+  const items: { route: Route; label: string; icon: string; show: boolean }[] = [
+    { route: { kind: "graph" }, label: t("nav.graph"), icon: "🕸", show: site.graph.edges.length > 0 },
+    { route: { kind: "cards" }, label: t("nav.cards"), icon: "🃏", show: site.cards.length > 0 },
+  ];
+  const visible = items.filter((i) => i.show);
+  if (visible.length === 0) return null;
+
+  return (
+    <div class="flex gap-1.5 px-4 pb-3">
+      {visible.map((item) => (
+        <a
+          key={item.label}
+          href={hrefFor(item.route)}
+          onClick={onNavigate}
+          data-testid={`nav-${item.route.kind}`}
+          class={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-[0.75em] font-medium no-underline transition ${
+            route.kind === item.route.kind
+              ? "border-transparent bg-[var(--accent-soft)] text-[var(--accent)]"
+              : "border-neutral-200 text-neutral-500 hover:border-[var(--accent)] hover:text-[var(--accent)] dark:border-neutral-700 dark:text-neutral-400"
+          }`}
+        >
+          <span aria-hidden>{item.icon}</span>
+          {item.label}
+        </a>
+      ))}
+    </div>
   );
 }
 
@@ -187,7 +241,7 @@ function TreeView({
       {node.children.map((child) => (
         <div key={child.path} class="mt-1 first:mt-0">
           {depth >= 0 && (
-            <div class="px-2.5 pt-5 pb-2 text-[0.7rem] font-semibold uppercase tracking-wider text-neutral-400">
+            <div class="grimoire-category px-2.5 pt-5 pb-2 text-neutral-400">
               {child.label}
             </div>
           )}
@@ -245,18 +299,48 @@ function NoteLinks({
 
 function SearchList({
   results,
+  cards,
   route,
   onNavigate,
 }: {
   results: NoteMeta[];
+  cards: CardMeta[];
   route: Route;
   onNavigate: () => void;
 }) {
   const { t } = useLocale();
-  if (results.length === 0) {
+  if (results.length === 0 && cards.length === 0) {
     return <p class="px-2 py-6 text-center text-neutral-400">{t("search.none")}</p>;
   }
-  return <NoteLinks notes={results} route={route} onNavigate={onNavigate} />;
+  return (
+    <>
+      <NoteLinks notes={results} route={route} onNavigate={onNavigate} />
+      {cards.length > 0 && (
+        <>
+          <div class="grimoire-category px-2.5 pt-5 pb-2 text-neutral-400">
+            {t("nav.cards")}
+          </div>
+          {cards.map((card) => (
+            <a
+              key={card.id}
+              href={cardHref(card.id)}
+              onClick={onNavigate}
+              class={`flex items-center gap-2.5 rounded-lg py-2 pl-3 pr-3 no-underline transition ${
+                route.kind === "card" && route.id === card.id
+                  ? "bg-[var(--accent-soft)] font-medium text-[var(--accent)]"
+                  : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800/70 dark:hover:text-neutral-100"
+              }`}
+            >
+              <span class="grid w-5 shrink-0 place-items-center text-[0.95rem] leading-none">
+                {card.icon ?? "🃏"}
+              </span>
+              <span class="truncate">{card.title}</span>
+            </a>
+          ))}
+        </>
+      )}
+    </>
+  );
 }
 
 // --- Main content ---------------------------------------------------------
@@ -275,24 +359,64 @@ function Content({
   if (route.kind === "note") {
     const note = byId.get(route.id);
     if (!note) return <NotFound id={route.id} />;
-    return <NoteView note={note} />;
+    return <NoteView key={note.id} note={note} anchor={route.anchor} />;
   }
   if (route.kind === "tag") return <TagView tag={route.tag} notes={notes} />;
   if (route.kind === "tags") return <TagsIndex tags={tags} />;
+  if (route.kind === "graph") return <GraphPage />;
+  if (route.kind === "cards") return <CardsIndex />;
+  if (route.kind === "card") return <CardPage id={route.id} />;
   return <Home notes={notes} />;
 }
 
-function NoteView({ note }: { note: NoteMeta }) {
+/** `#/graph` — the whole knowledge graph, with a few numbers about its health. */
+function GraphPage() {
+  const { t } = useLocale();
+  const site = useSite();
+  const orphans = site.graph.nodes.filter((n) => n.degree === 0).length;
+  return (
+    <div class="animate-fade">
+      <h1 class="text-3xl font-bold tracking-tight">🕸 {t("graph.title")}</h1>
+      <p class="mt-2 text-neutral-500 dark:text-neutral-400">
+        {t("graph.stats", { nodes: site.graph.nodes.length, edges: site.graph.edges.length })}
+        {orphans > 0 && ` · ${t("graph.orphans", { count: orphans })}`}
+        {site.graph.broken.length > 0 && ` · ${t("graph.broken", { count: site.graph.broken.length })}`}
+      </p>
+      <div class="mt-6">
+        <GraphView height={560} />
+      </div>
+    </div>
+  );
+}
+
+function NoteView({ note, anchor }: { note: NoteMeta; anchor?: string }) {
   const Body = note.Component;
   const { t } = useLocale();
   const exportHref =
     `/api/export/${note.id.split("/").map(encodeURIComponent).join("/")}` +
     `?lang=${encodeURIComponent(note.lang)}`;
+
+  // A wiki link may target a heading; the body loads asynchronously, so retry
+  // briefly until the anchor exists (or give up and leave the reader at the top).
+  useEffect(() => {
+    if (!anchor) return;
+    let tries = 0;
+    const timer = setInterval(() => {
+      const el = document.getElementById(anchor);
+      if (el || ++tries > 20) {
+        clearInterval(timer);
+        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 60);
+    return () => clearInterval(timer);
+  }, [note.id, anchor]);
+
   return (
+    <CurrentEntryProvider id={note.id}>
     <article class="animate-fade">
       <header class="mb-8 border-b border-neutral-200 pb-6 dark:border-neutral-800">
         {note.segments.length > 0 && (
-          <div class="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--accent)]">
+          <div class="grimoire-category mb-2 text-[var(--accent)]">
             {note.segments.join(" / ")}
           </div>
         )}
@@ -330,7 +454,9 @@ function NoteView({ note }: { note: NoteMeta }) {
       <div class="prose prose-neutral max-w-none dark:prose-invert">
         <Body />
       </div>
+      <Connections id={note.id} />
     </article>
+    </CurrentEntryProvider>
   );
 }
 

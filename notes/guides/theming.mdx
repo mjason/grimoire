@@ -1,0 +1,190 @@
+---
+title: Theming
+description: Palettes, accents, typography and density — for the site and for each reader.
+tags: [guide, theme, design]
+date: "2026-08-09"
+icon: 🎨
+order: 5
+---
+
+Taste isn't universal, so Grimoire's look is data rather than code. The site
+author sets a default in `config.ts`; every reader can then layer their own
+preferences on top, stored in their browser. Both use exactly the same knobs.
+
+## The site default
+
+```ts title="config.ts"
+export default {
+  theme: {
+    preset: "grimoire",   // a built-in, one of `presets`, or an inline palette
+    accent: "violet",     // a name, or any hex like "#0ea5e9"
+    mode: "system",       // light | dark | system
+    radius: 1,            // 0 (sharp) … 2 (very round)
+    picker: true,         // let readers choose their own
+
+    font: "sans",         // reading text: sans | serif | mono
+    uiFont: "sans",       // navigation chrome — defaults to `font`
+    categoryFont: "mono", // category labels — defaults to `uiFont`
+    fontSize: 1,          // 0.75 … 1.6, reading text only
+    uiFontSize: 1,        // 0.75 … 1.6, navigation only
+    categoryFontSize: 1,  // 0.75 … 1.6, category labels only
+    density: "comfortable", // compact | comfortable | spacious — scales the whole UI
+  },
+};
+```
+
+Every one of these takes effect **on save** — the engine binary is never
+rebuilt. Set `picker: false` if the site's look is not up for negotiation.
+
+## What a preset is
+
+A preset is a **neutral ramp** — the eleven greys every surface, border and
+piece of text is drawn from — plus sensible defaults for accent, typeface and
+roundness.
+
+| Preset | Feel |
+| --- | --- |
+| `grimoire` | Pure neutral greys — the original look |
+| `slate` | Cool blue-grey |
+| `paper` | Warm sepia with a serif body, for long reading |
+| `nord` | Frosty blue surfaces, cyan accent |
+| `carbon` | High contrast, near-square corners |
+| `sakura` | Soft warm blush, generously rounded |
+
+## Your own palette
+
+Six opinions are still six opinions. Declare your own in `config.ts` and it
+joins the picker beside the built-ins:
+
+```ts title="config.ts"
+theme: {
+  preset: "moss",
+  presets: [
+    {
+      id: "moss",
+      label: "Moss",
+      hint: "Cool green-grey, low saturation.",
+      extends: "paper",              // inherit anything you don't set
+      accent: "#4d7c0f",
+      white: "oklch(99% 0.008 150)", // optional: what `bg-white` becomes
+      neutral: [                     // required: 11 colours, 50 → 950
+        "oklch(97.6% 0.009 150)", "oklch(95.6% 0.012 150)", "oklch(91.4% 0.016 148)",
+        "oklch(86% 0.019 146)",   "oklch(70.4% 0.025 144)", "oklch(55.2% 0.027 142)",
+        "oklch(44.4% 0.025 140)", "oklch(37.2% 0.023 138)", "oklch(27% 0.019 136)",
+        "oklch(21.4% 0.016 134)", "oklch(15% 0.013 132)",
+      ],
+    },
+  ],
+}
+```
+
+The rules:
+
+- **All eleven shades, or none.** A short or malformed ramp is refused outright
+  and reported in the terminal — a half-applied palette would be worse than an
+  obvious failure.
+- `neutral` also accepts an object keyed by shade: `{ "50": "…", "100": "…" }`.
+- Reuse a built-in's id to **re-tune it in place**: `{ id: "paper", accent:
+  "#111" }` keeps Paper's ramp and changes only the accent.
+- One ramp covers both modes — light draws from 50–200, dark from 800–950.
+- For a one-off, skip `presets` entirely and write the palette straight into
+  `preset: { … }`.
+
+<Callout type="tip" title="Picking eleven greys">
+Start from a built-in ramp and shift its hue: keep the lightness percentages,
+change the hue angle, and raise the chroma slightly toward the middle of the
+ramp where tints are most visible. `oklch()` makes that a one-number edit.
+</Callout>
+
+## Typography: three scopes
+
+A page has three kinds of text, and they rarely want the same treatment. Each has
+a typeface and a size multiplier, and each **falls back to the one above** — so
+setting `font` alone keeps everything consistent, and you override only what
+should differ.
+
+| Setting | Applies to | Defaults to |
+| --- | --- | --- |
+| `font` / `fontSize` | The reading text (`.prose`) | the preset's face / `1` |
+| `uiFont` / `uiFontSize` | The navigation chrome — sidebar, top bar, search | `font` / `1` |
+| `categoryFont` / `categoryFontSize` | Category labels, section headings, breadcrumbs | `uiFont` / `1` |
+
+```ts title="config.ts"
+theme: {
+  font: "serif",        // long-form reading
+  uiFont: "sans",       // but keep the navigation crisp
+  categoryFont: "mono", // and set labels in a display face
+  categoryFontSize: 0.9,
+}
+```
+
+In markup these are two classes you can reuse in your own components:
+`grimoire-nav` (navigation typeface, scaled by `--ui-scale`) and
+`grimoire-category` (category typeface, uppercase, scaled by `--category-scale`).
+Sizes inside `.grimoire-nav` are written in `em`, so `uiFontSize` reaches all of
+them at once.
+
+## Size vs density
+
+`density` is a different axis from the size multipliers:
+
+| | Scales | Use it for |
+| --- | --- | --- |
+| `density` | The root font size — and with it *everything*, since the layout is rem-based | How much fits on screen |
+| `fontSize` etc. | One scope each, via `--prose-size` / `--ui-scale` / `--category-scale` | How big that text is |
+
+All of them are emitted as ratios (`html { font-size: 93.75% }`), never pixels —
+so a reader who raised their browser's default text size, usually because they
+need to, keeps it.
+
+## How it works
+
+Tailwind v4 utilities don't hard-code colours — they read theme variables:
+
+```css
+.bg-neutral-50 { background-color: var(--color-neutral-50); }
+.rounded-2xl   { border-radius: var(--radius-2xl); }
+```
+
+So the entire theme system is one block of custom properties re-declared on
+`:root` after Tailwind's own — which is exactly what a `presets` entry becomes:
+
+```css
+:root {
+  --color-neutral-50: oklch(97.4% 0.011 86);
+  /* … the rest of the ramp … */
+  --color-white: oklch(98.8% 0.012 88);
+  --radius-2xl: 0.6rem;
+  --font-body: ui-serif, Georgia, serif;
+  --accent: #b45309;
+}
+```
+
+Every existing component re-tints at once, without a single class name
+changing. That's the whole trick — see [[theme-tokens]].
+
+<Callout type="tip" title="Custom components come along for the ride">
+Style your own components with `neutral` utilities and `var(--accent)`, and they
+inherit every preset automatically. Avoid hard-coded hex colours and you never
+have to think about theming again.
+</Callout>
+
+## The reader's copy
+
+The palette button in the sidebar opens the same controls. Choices are saved
+locally, along with the generated CSS, so a personal theme is applied *before*
+first paint — no flash of the site default. "Reset" hands the look back to the
+author.
+
+## Dark mode
+
+Dark mode is a class on `<html>`, not a separate palette: the same ramp is read
+from the other end (`bg-white` → `dark:bg-neutral-950`). Write both variants in
+your own components and every preset works in both modes:
+
+```tsx
+<div class="border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+```
+
+For the full picture of how the engine turns config into a served page, see
+[[engine-boot]].

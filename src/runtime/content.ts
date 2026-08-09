@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import matter from "gray-matter";
 import { compile } from "@mdx-js/mdx";
 import { mdxCompileOptions } from "../mdx-options";
+import { extractLinks } from "./links";
 
 export interface NoteEntry {
   id: string;
@@ -13,6 +14,8 @@ export interface NoteEntry {
   lang: string | null;
   file: string;
   frontmatter: Record<string, any>;
+  /** Unresolved link targets found in the note body (`[[…]]` + in-app hrefs). */
+  links: string[];
 }
 
 export interface ComponentEntry {
@@ -22,7 +25,7 @@ export interface ComponentEntry {
 }
 
 async function walk(dir: string, match: (n: string) => boolean): Promise<string[]> {
-  let entries: Awaited<ReturnType<typeof readdir>>;
+  let entries;
   try {
     entries = await readdir(dir, { withFileTypes: true });
   } catch {
@@ -79,15 +82,22 @@ export async function scanNotes(notesDir: string, locales: string[]): Promise<No
   for (const file of files) {
     const { id, segments, lang } = noteIdentity(file, notesDir, locales);
     let data: Record<string, any> = {};
+    let content = "";
     try {
-      data = matter(await readFile(file, "utf8")).data ?? {};
+      const parsed = matter(await readFile(file, "utf8"));
+      data = parsed.data ?? {};
+      content = parsed.content ?? "";
     } catch {
       /* malformed frontmatter — treat as empty */
     }
     if (data.draft) continue;
     // Normalize a YAML Date back to a plain string for JSON transport.
     if (data.date instanceof Date) data.date = data.date.toISOString().slice(0, 10);
-    out.push({ id, segments, lang, file, frontmatter: data });
+    // Links declared in frontmatter (`links: [...]`) count too, so a note can
+    // join the graph without mentioning its neighbours in prose.
+    const declared = Array.isArray(data.links) ? data.links.map(String) : [];
+    const links = [...new Set([...declared, ...extractLinks(content)])];
+    out.push({ id, segments, lang, file, frontmatter: data, links });
   }
   return out;
 }
@@ -103,11 +113,16 @@ export async function scanComponents(componentsDir: string): Promise<ComponentEn
   }));
 }
 
+/** Compile MDX source into a portable function-body the client evaluates. */
+export async function compileMdx(source: string): Promise<string> {
+  const compiled = await compile(source, mdxCompileOptions("function-body") as any);
+  return String(compiled);
+}
+
 /** Compile a note's MDX into a portable function-body the client evaluates. */
 export async function compileNote(file: string): Promise<string> {
   const { content } = matter(await readFile(file, "utf8"));
-  const compiled = await compile(content, mdxCompileOptions("function-body") as any);
-  return String(compiled);
+  return compileMdx(content);
 }
 
 // External bare specifiers resolved by the page's import map (→ /_dep shims).

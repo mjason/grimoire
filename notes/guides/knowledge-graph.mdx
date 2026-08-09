@@ -1,0 +1,121 @@
+---
+title: Links, Graph & Cards
+description: Wiki links, backlinks, the knowledge graph, and the plain-text card box.
+tags: [guide, links, graph, cards]
+date: "2026-08-09"
+icon: 🕸
+order: 4
+---
+
+A pile of notes becomes a body of knowledge only once the notes point at each
+other. Grimoire gives you three connected pieces for that: **wiki links** you
+write inline, **backlinks** computed for you, and a **graph** you can walk. Card
+notes ([[cards-are-text]]) live in the same graph.
+
+## Wiki links
+
+Write a double-bracket link anywhere in a note or card:
+
+```mdx
+See [[guides/authoring]] for frontmatter rules.
+Start with [[guides/getting-started|the quick start]].
+Jump straight to [[guides/authoring#frontmatter|the frontmatter section]].
+```
+
+- `[[target]]` — link by id, title, or file name
+- `[[target|Label]]` — custom link text
+- `[[target#heading]]` — land on a heading
+
+Targets resolve in this order: an explicit `note:`/`card:` prefix, the exact id,
+then a **unique** basename, title or alias. Ambiguity never guesses — if two
+notes share a name, the link is reported broken so you can disambiguate. The
+rules live in [[link-resolution]].
+
+<Callout type="tip" title="Broken links are visible">
+An unresolved link renders with a wavy underline instead of disappearing, and
+`bun run verify` lists every one of them with the note it came from.
+</Callout>
+
+Links inside fenced code blocks and `` `inline code` `` are left alone, so
+documenting the syntax never creates an edge.
+
+### Linking without prose
+
+A note can join the graph from its frontmatter, which is handy for index pages:
+
+```yaml
+---
+title: Reading list
+links: [guides/authoring, engine-boot]
+aliases: [Bibliography]
+---
+```
+
+`aliases` also gives a note extra names that `[[…]]` will resolve.
+
+## Backlinks
+
+Every note and card ends with a **Connections** panel: what it links to, what
+links back, and a local graph. Nothing to maintain — it's derived from the same
+scan that builds the site.
+
+Inside a note body you can also place the pieces yourself:
+
+```mdx
+<Backlinks />          {/* what links here */}
+<Links />              {/* what this note links to */}
+<Backlinks of="engine-boot" />   {/* …for some other entry */}
+```
+
+## The graph
+
+`#/graph` draws the whole thing; the sidebar has a link when there's at least
+one edge. Drag to pan, scroll to zoom, click a node to open it. Hovering a node
+dims everything it isn't connected to.
+
+Embed a local view in any note:
+
+```mdx
+<Graph note="guides/authoring" depth={2} height={360} />
+<Graph card="engine-boot" />
+```
+
+<Graph note="guides/knowledge-graph" depth={2} height={320} />
+
+The layout is deterministic — the same notes always draw the same picture, so
+the map stays recognisable between visits.
+
+## Card notes
+
+Cards are the small end of the scale: one idea, one name, plain text. They live
+in `cards/`, one file per deck, and each card is separated by its own YAML
+block — see [[card-format]] for the exact rules.
+
+```md
+---
+title: Boot sequence
+id: engine-boot
+tags: [engine, runtime]
+links: [guides/getting-started]
+---
+
+The engine reads config, scans notes, then serves.
+```
+
+Browse them at `#/cards`, or pull a filtered set into any note:
+
+```mdx
+<Cards tag="engine" columns={2} />
+<Cards ids="engine-boot,card-format" expand />
+```
+
+<Cards tag="cards" columns={2} />
+
+Cards are ordinary graph citizens: they can link to notes, notes can link to
+them, and they show up in the graph as hollow nodes.
+
+<Callout type="note" title="Why a separate box?">
+Notes are documents — they have sections, charts, an argument. Cards are
+*claims*: the smallest piece of project knowledge worth naming and re-using.
+Keeping them apart stops long documents from swallowing the facts inside them.
+</Callout>

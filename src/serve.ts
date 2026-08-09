@@ -1,7 +1,8 @@
 // The Grimoire engine server. Run directly (`bun run src/serve.ts`) or compiled
 // to a single binary. At runtime it reads an external project (config + notes/ +
-// components/), compiles content on demand, generates CSS server-side, and serves
-// a live, hot-reloading site. Bring your own content; the engine is the binary.
+// components/ + cards/), compiles content on demand, resolves every `[[link]]`
+// into a knowledge graph, generates themed CSS server-side, and serves a live,
+// hot-reloading site. Bring your own content; the engine is the binary.
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { watch } from "node:fs";
@@ -13,11 +14,26 @@ import {
   scanNotes,
   scanComponents,
   compileNote,
+  compileMdx,
   transpileComponent,
   type NoteEntry,
   type ComponentEntry,
 } from "./runtime/content";
 import { createCssCompiler, extractCandidates, type CssCompiler } from "./runtime/css";
+import { scanCards, type CardEntry } from "./runtime/cards";
+import { buildGraph, type GraphEntry, type LinkGraph } from "./runtime/links";
+import {
+  MODE_STORAGE_KEY,
+  THEME_CSS_STORAGE_KEY,
+  THEME_STORAGE_KEY,
+  customPresets,
+  mergeThemeSettings,
+  resolveTheme,
+  themeCatalog,
+  themeCss,
+  type ThemePreset,
+  type ThemeSettings,
+} from "./runtime/theme";
 import { runDaemon, writeDaemonState } from "./daemon";
 
 // --- Embedded engine assets (bundled into the binary; read from disk in dev) --
@@ -45,6 +61,7 @@ const ROOT = resolve(arg("root") ?? process.cwd());
 // notes/components dirs: --flag → config → default (resolved per rebuild).
 const CLI_NOTES = arg("notes");
 const CLI_COMPONENTS = arg("components");
+const CLI_CARDS = arg("cards");
 // CLI/env take precedence; config supplies the fallback (resolved after load).
 const CLI_PORT = arg("port") ?? process.env.PORT;
 const CLI_HOST = arg("host") ?? process.env.HOST;
@@ -61,17 +78,144 @@ interface State {
   config: GrimoireConfig;
   notes: NoteEntry[];
   components: ComponentEntry[];
+  cards: CardEntry[];
+  /** The client-facing card list, built once per rebuild rather than per request. */
+  cardsMeta: ReturnType<typeof cardMeta>[];
+  graph: LinkGraph;
+  theme: ThemeSettings;
+  /** Palettes the author defined in `config.theme.presets` / `theme.preset`. */
+  themePresets: ThemePreset[];
+  /** The site theme as CSS, built once per rebuild rather than per request. */
+  themeCss: string;
   css: string;
   notesDir: string;
   componentsDir: string;
+  cardsDir: string;
 }
 let state: State;
 let cssCompiler: CssCompiler;
 const noteCache = new Map<string, string>(); // file -> function-body
 const compCache = new Map<string, string>(); // file -> transpiled JS
+const cardCache = new Map<string, string>(); // card id -> function-body
 
 function locales(config: GrimoireConfig): string[] {
   return (config.i18n?.locales ?? []).map((l) => l.code);
+}
+
+/** The site's own theme, with the legacy `defaultMode` field folded into `mode`. */
+function themeSettings(config: GrimoireConfig): ThemeSettings {
+  const theme = config.theme ?? {};
+  return mergeThemeSettings(
+    theme.defaultMode ? { mode: theme.defaultMode } : null,
+    theme as ThemeSettings,
+  );
+}
+
+/**
+ * Validate the author's palettes, warning about any that were rejected — a
+ * malformed ramp should say so in the terminal, not vanish from the picker.
+ */
+function resolveThemePresets(config: GrimoireConfig): ThemePreset[] {
+  const theme = config.theme ?? {};
+  const declared = [
+    ...(Array.isArray(theme.presets) ? theme.presets : []),
+    ...(theme.preset && typeof theme.preset === "object" ? [theme.preset] : []),
+  ];
+  const accepted = customPresets(declared);
+  if (declared.length > accepted.length) {
+    console.error(
+      `grimoire: ${declared.length - accepted.length} theme preset(s) ignored — ` +
+        `each needs a valid \`neutral\` ramp of 11 colours (50 → 950).`,
+    );
+  }
+  return accepted;
+}
+
+/**
+ * One graph node per note *slug* (translations share it) plus one per card, with
+ * link targets unioned across a note's language variants.
+ */
+function graphEntries(notes: NoteEntry[], cards: CardEntry[], defaultLocale: string): GraphEntry[] {
+  const byId = new Map<string, GraphEntry>();
+  for (const note of notes) {
+    const fm = note.frontmatter ?? {};
+    const existing = byId.get(note.id);
+    const isDefault = (note.lang ?? defaultLocale) === defaultLocale;
+    const aliases = Array.isArray(fm.aliases) ? fm.aliases.map(String) : [];
+    if (!existing) {
+      byId.set(note.id, {
+        id: note.id,
+        kind: "note",
+        title: fm.title ? String(fm.title) : note.id.split("/").pop()!,
+        description: fm.description ? String(fm.description) : undefined,
+        tags: Array.isArray(fm.tags) ? fm.tags.map(String) : [],
+        links: [...note.links],
+        aliases,
+      });
+      continue;
+    }
+    // Prefer the default-locale title, but keep every variant's links + aliases.
+    if (isDefault && fm.title) existing.title = String(fm.title);
+    if (isDefault && fm.description) existing.description = String(fm.description);
+    existing.links = [...new Set([...(existing.links ?? []), ...note.links])];
+    existing.aliases = [...new Set([...(existing.aliases ?? []), ...aliases])];
+  }
+  const cardsById = new Map<string, GraphEntry>();
+  for (const card of cards) {
+    const existing = cardsById.get(card.id);
+    const isDefault = (card.lang ?? defaultLocale) === defaultLocale;
+    if (!existing) {
+      cardsById.set(card.id, {
+        id: card.id,
+        kind: "card",
+        title: card.title,
+        description: card.description ?? cardExcerpt(card.body, 120),
+        tags: card.tags,
+        links: [...card.links],
+      });
+      continue;
+    }
+    if (isDefault) {
+      existing.title = card.title;
+      existing.description = card.description ?? cardExcerpt(card.body, 120);
+    }
+    existing.links = [...new Set([...(existing.links ?? []), ...card.links])];
+  }
+  return [...byId.values(), ...cardsById.values()];
+}
+
+/** Markdown flattened to a plain-text preview, for card grids. */
+function cardExcerpt(body: string, max = 260): string {
+  const text = body
+    .replace(/^```[\s\S]*?^```/gm, " ")
+    .replace(/`([^`]*)`/g, "$1")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, target: string, alias?: string) => alias ?? target)
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/^[#>\-*+\s]+/gm, "")
+    .replace(/[*_~]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}
+
+/** The client-facing shape of a card: everything but the raw markdown body. */
+function cardMeta(card: CardEntry) {
+  return {
+    id: card.id,
+    title: card.title,
+    description: card.description,
+    tags: card.tags,
+    deck: card.deck,
+    icon: card.icon,
+    color: card.color,
+    date: card.date,
+    order: card.order,
+    index: card.index,
+    lang: card.lang,
+    links: card.links,
+    excerpt: cardExcerpt(card.body),
+  };
 }
 
 async function rebuild(): Promise<void> {
@@ -79,27 +223,51 @@ async function rebuild(): Promise<void> {
   // --flag overrides config overrides the default.
   const notesDir = resolveDir(ROOT, CLI_NOTES ?? config.notes, "notes");
   const componentsDir = resolveDir(ROOT, CLI_COMPONENTS ?? config.components, "components");
-  const [notes, components] = await Promise.all([
+  const cardsDir = resolveDir(ROOT, CLI_CARDS ?? config.cards, "cards");
+  const [notes, components, cards] = await Promise.all([
     scanNotes(notesDir, locales(config)),
     scanComponents(componentsDir),
+    scanCards(cardsDir, locales(config)),
   ]);
 
-  // Candidate class names: engine (precomputed) + user notes/components sources.
+  const graph = buildGraph(graphEntries(notes, cards, config.i18n?.defaultLocale ?? "en"));
+
+  // Candidate class names: engine (precomputed) + user notes/components/cards.
   const candidates = new Set(engineCandidates.split("\n").filter(Boolean));
   await Promise.all(
-    [...notes.map((n) => n.file), ...components.map((c) => c.file)].map(async (f) => {
-      try {
-        extractCandidates(await readFile(f, "utf8"), candidates);
-      } catch {
-        /* ignore unreadable */
-      }
-    }),
+    [...notes.map((n) => n.file), ...components.map((c) => c.file), ...new Set(cards.map((c) => c.file))].map(
+      async (f) => {
+        try {
+          extractCandidates(await readFile(f, "utf8"), candidates);
+        } catch {
+          /* ignore unreadable */
+        }
+      },
+    ),
   );
   const css = cssCompiler.build([...candidates]);
 
+  const theme = themeSettings(config);
+  const themePresets = resolveThemePresets(config);
+
   noteCache.clear();
   compCache.clear();
-  state = { config, notes, components, css, notesDir, componentsDir };
+  cardCache.clear();
+  state = {
+    config,
+    notes,
+    components,
+    cards,
+    cardsMeta: cards.map(cardMeta),
+    graph,
+    theme,
+    themePresets,
+    themeCss: cssSafe(themeCss(resolveTheme(theme, themeCatalog(themePresets)))),
+    css,
+    notesDir,
+    componentsDir,
+    cardsDir,
+  };
 }
 
 function resolveNoteEntry(id: string, lang: string | null): NoteEntry | undefined {
@@ -110,6 +278,19 @@ function resolveNoteEntry(id: string, lang: string | null): NoteEntry | undefine
   return (
     variants.find((n) => langOf(n) === want) ??
     variants.find((n) => langOf(n) === def) ??
+    variants[0]
+  );
+}
+
+/** Pick a card's language variant, mirroring how notes resolve. */
+function resolveCardEntry(id: string, lang: string | null): CardEntry | undefined {
+  const def = state.config.i18n?.defaultLocale ?? "en";
+  const want = lang ?? def;
+  const variants = state.cards.filter((c) => c.id === id);
+  const langOf = (c: CardEntry) => c.lang ?? def;
+  return (
+    variants.find((c) => langOf(c) === want) ??
+    variants.find((c) => langOf(c) === def) ??
     variants[0]
   );
 }
@@ -143,24 +324,31 @@ function depModule(name: string): string | null {
 }
 
 // --- HTML shell --------------------------------------------------------------
-const ACCENTS: Record<string, [string, string]> = {
-  violet: ["#7c3aed", "#fff"], indigo: ["#4f46e5", "#fff"], blue: ["#2563eb", "#fff"],
-  sky: ["#0284c7", "#fff"], cyan: ["#0891b2", "#fff"], emerald: ["#059669", "#fff"],
-  green: ["#16a34a", "#fff"], amber: ["#d97706", "#fff"], orange: ["#ea580c", "#fff"],
-  rose: ["#e11d48", "#fff"], pink: ["#db2777", "#fff"], fuchsia: ["#c026d3", "#fff"],
-};
 function esc(s: string) {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 }
-/** The accent CSS custom properties for a config's theme colour. */
-function accentVars(config: GrimoireConfig): string {
-  const [accent, fg] = ACCENTS[config.theme?.accent ?? "violet"] ?? ACCENTS.violet!;
-  return `:root{--accent:${accent};--accent-fg:${fg};--accent-soft:color-mix(in srgb, ${accent} 14%, transparent);}`;
+/** A `</style>` inside a value must not be able to close the tag it lives in. */
+function cssSafe(css: string): string {
+  return css.replace(/<\/(style)/gi, "<\\/$1");
 }
-/** Inline script (runs before paint) that applies the persisted/desired color mode. */
+/**
+ * Inline script (runs before paint) that applies the reader's own theme: the CSS
+ * they last generated, then the light/dark decision. Cached CSS is written by the
+ * theme picker, so a personal theme never flashes the site default first.
+ */
 function themeBootScript(config: GrimoireConfig): string {
-  const mode = config.theme?.defaultMode ?? "system";
-  return `(()=>{try{var m=localStorage.getItem("grimoire-mode")||${JSON.stringify(mode)};document.documentElement.classList.toggle("dark",m==="dark"||(m==="system"&&matchMedia("(prefers-color-scheme: dark)").matches));}catch(e){}})();`;
+  const mode = themeSettings(config).mode ?? "system";
+  return (
+    `(()=>{try{var d=document,r=d.documentElement;` +
+    `var css=localStorage.getItem(${JSON.stringify(THEME_CSS_STORAGE_KEY)});` +
+    `if(css){var s=d.createElement("style");s.id="grimoire-theme-vars";s.textContent=css;` +
+    `(d.head||r).appendChild(s);}` +
+    `var m=null;try{var t=JSON.parse(localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)})||"null");` +
+    `if(t&&typeof t.mode==="string")m=t.mode;}catch(e){}` +
+    `if(!m)m=localStorage.getItem(${JSON.stringify(MODE_STORAGE_KEY)})||${JSON.stringify(mode)};` +
+    `r.classList.toggle("dark",m==="dark"||(m==="system"&&matchMedia("(prefers-color-scheme: dark)").matches));` +
+    `}catch(e){}})();`
+  );
 }
 function indexHtml(config: GrimoireConfig): string {
   const lang = config.i18n?.defaultLocale ?? "en";
@@ -184,7 +372,7 @@ function indexHtml(config: GrimoireConfig): string {
 <meta name="description" content="${esc(config.description ?? "")}"/>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%93%3C/text%3E%3C/svg%3E"/>
 <link rel="stylesheet" href="/app.css"/>
-<style>${accentVars(config)}</style>
+<style>${state.themeCss}</style>
 <script>${boot}</script>
 <script type="importmap">${importmap}</script>
 </head><body><div id="app"></div>
@@ -204,6 +392,14 @@ const jsDataUrl = (js: string) => `data:text/javascript;base64,${b64(js)}`;
  *  resolved to inline data: URLs so the file has no network dependencies. */
 function shimDataUrl(name: string): string {
   return jsDataUrl(depModule(name)!);
+}
+
+/** Graph ids → `{ id, title, kind }`, for the export payload. */
+function titlesFor(ids: string[]) {
+  return ids.flatMap((id) => {
+    const node = state.graph.nodes.find((n) => n.id === id);
+    return node ? [{ id: node.id, title: node.title, kind: node.kind }] : [];
+  });
 }
 
 async function buildExportHtml(entry: NoteEntry): Promise<string> {
@@ -257,6 +453,9 @@ async function buildExportHtml(entry: NoteEntry): Promise<string> {
       description: config.description,
       author: config.author,
       footer: config.footer,
+      // An exported file carries the site's palettes so its own theme toggle
+      // resolves exactly like the live site.
+      theme: { ...state.theme, presets: state.themePresets },
     },
     note: {
       id: entry.id,
@@ -264,6 +463,10 @@ async function buildExportHtml(entry: NoteEntry): Promise<string> {
       lang,
       frontmatter: entry.frontmatter,
       body,
+      // A shared file keeps its place in the graph, as plain text: the reader
+      // sees what this note links to and what links back, without a server.
+      links: titlesFor(state.graph.outgoing[entry.id] ?? []),
+      backlinks: titlesFor(state.graph.backlinks[entry.id] ?? []),
     },
     components: components.map((c) => ({ name: c.name, module: jsDataUrl(c.src) })),
   };
@@ -283,8 +486,8 @@ async function buildExportHtml(entry: NoteEntry): Promise<string> {
 <meta name="description" content="${esc(String(fm.description ?? config.description ?? ""))}"/>
 <meta name="generator" content="Grimoire"/>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%93%3C/text%3E%3C/svg%3E"/>
-<style>${accentVars(config)}</style>
-<style>${state.css}</style>
+<style>${cssSafe(state.css)}</style>
+<style>${state.themeCss}</style>
 <script>${themeBootScript(config)}</script>${importmap}
 </head><body><div id="app"></div>
 <script>window.__GRIMOIRE__=${payloadJs}</script>
@@ -363,7 +566,9 @@ async function main() {
             title: c.title,
             description: c.description,
             author: c.author,
-            theme: c.theme,
+            // The client rebuilds the same catalog from these, so its picker and
+            // its resolver agree with the CSS the server already inlined.
+            theme: { ...state.theme, presets: state.themePresets, picker: c.theme?.picker },
             categoryOrder: c.categoryOrder,
             footer: c.footer,
             i18n: c.i18n,
@@ -373,9 +578,34 @@ async function main() {
             segments: n.segments,
             lang: n.lang,
             frontmatter: n.frontmatter,
+            links: n.links,
           })),
+          cards: state.cardsMeta,
+          graph: state.graph,
           components: state.components.map((c) => ({ name: c.name, url: c.url })),
         });
+      }
+
+      if (p === "/api/graph") return json(state.graph);
+
+      if (p === "/api/cards") return json(state.cardsMeta);
+
+      if (p.startsWith("/api/card/")) {
+        const id = safeDecode(p.slice("/api/card/".length));
+        if (id == null) return new Response("bad request", { status: 400 });
+        const card = resolveCardEntry(id, url.searchParams.get("lang"));
+        if (!card) return new Response(`card not found: ${id}`, { status: 404 });
+        try {
+          const key = `${card.lang ?? ""}::${card.id}`;
+          let body = cardCache.get(key);
+          if (body == null) {
+            body = await compileMdx(card.body);
+            cardCache.set(key, body);
+          }
+          return txt(body, "text/plain; charset=utf-8");
+        } catch (e) {
+          return new Response(`compile error: ${(e as Error).message}`, { status: 500 });
+        }
       }
 
       if (p.startsWith("/api/note/")) {
@@ -533,7 +763,8 @@ function banner(host: string, port: number) {
   process.stdout.write(
     `\n  📓  \x1b[1mGrimoire\x1b[0m\n` +
       `      \x1b[2mroot:\x1b[0m ${ROOT}\n` +
-      `      \x1b[2mnotes:\x1b[0m ${state.notes.length}  \x1b[2mcomponents:\x1b[0m ${state.components.length}\n` +
+      `      \x1b[2mnotes:\x1b[0m ${state.notes.length}  \x1b[2mcards:\x1b[0m ${state.cards.length}` +
+      `  \x1b[2mlinks:\x1b[0m ${state.graph.edges.length}  \x1b[2mcomponents:\x1b[0m ${state.components.length}\n` +
       `${lines}\n\n`,
   );
 }
@@ -561,7 +792,7 @@ function startWatching() {
       }
     }, 80);
   };
-  for (const dir of [state.notesDir, state.componentsDir]) {
+  for (const dir of [state.notesDir, state.componentsDir, state.cardsDir]) {
     if (existsSync(dir)) watch(dir, { recursive: true }, schedule);
   }
   const cfg = findConfig();

@@ -4,9 +4,10 @@
 /* Class-based dark mode: toggled by adding `.dark` to <html>. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Make sure Tailwind scans notes + components + client for class names. */
+/* Make sure Tailwind scans notes + components + cards + client for class names. */
 @source "../../notes/**/*.{mdx,md}";
 @source "../../components/**/*.{ts,tsx,js,jsx}";
+@source "../../cards/**/*.{md,mdx}";
 @source "./**/*.{ts,tsx,js,jsx}";
 
 @theme {
@@ -17,7 +18,10 @@
 }
 
 :root {
-  /* Overridden per-site from config.theme.accent (see the HTML shell). */
+  /* Fallbacks only. The real values come from the theme system, emitted into the
+     HTML shell (server) and refreshed by the theme picker (client) — see
+     src/runtime/theme.ts. Everything below reads them, so a theme change
+     re-tints the whole UI without touching a class name. */
   --accent: #7c3aed;
   --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
   --accent-fg: #ffffff;
@@ -29,13 +33,31 @@ html {
 
 body {
   @apply bg-white text-neutral-800 antialiased dark:bg-neutral-950 dark:text-neutral-200;
-  font-family: var(--font-sans);
+  font-family: var(--font-body, var(--font-sans));
 }
 
 /* Thin, unobtrusive scrollbars. */
 * {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, currentColor 25%, transparent) transparent;
+}
+
+/* --- Navigation + category typography ------------------------------------ */
+/* The chrome (sidebar, mobile top bar) and the category labels get their own
+   typeface and size from `theme.uiFont` / `theme.categoryFont`, so an author can
+   set the navigation in one face and the reading text in another. Sizes inside
+   the nav are `em`-based so `--ui-scale` reaches all of them. */
+.grimoire-nav {
+  font-family: var(--font-ui, var(--font-body, var(--font-sans)));
+  font-size: calc(1rem * var(--ui-scale, 1));
+}
+.grimoire-category {
+  font-family: var(--font-category, var(--font-ui, var(--font-body, var(--font-sans))));
+  font-size: calc(0.7rem * var(--category-scale, 1));
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 /* --- Accent helpers ------------------------------------------------------ */
@@ -51,9 +73,45 @@ body {
 }
 
 /* --- Prose tuning -------------------------------------------------------- */
+/* Typography bakes literal colours into `prose-neutral`, which would ignore the
+   active theme. Re-point every prose variable at the themed palette instead —
+   these rules are unlayered, so they win over the plugin's utility layer. */
 .prose {
+  --tw-prose-body: var(--color-neutral-700);
+  --tw-prose-headings: var(--color-neutral-900);
+  --tw-prose-lead: var(--color-neutral-600);
   --tw-prose-links: var(--accent);
+  --tw-prose-bold: var(--color-neutral-900);
+  --tw-prose-counters: var(--color-neutral-500);
+  --tw-prose-bullets: var(--color-neutral-300);
+  --tw-prose-hr: var(--color-neutral-200);
+  --tw-prose-quotes: var(--color-neutral-900);
+  --tw-prose-quote-borders: var(--color-neutral-200);
+  --tw-prose-captions: var(--color-neutral-500);
+  --tw-prose-kbd: var(--color-neutral-900);
+  --tw-prose-code: var(--color-neutral-900);
+  --tw-prose-th-borders: var(--color-neutral-300);
+  --tw-prose-td-borders: var(--color-neutral-200);
+  --tw-prose-invert-body: var(--color-neutral-300);
+  --tw-prose-invert-headings: var(--color-white);
+  --tw-prose-invert-lead: var(--color-neutral-400);
+  --tw-prose-invert-links: var(--accent);
+  --tw-prose-invert-bold: var(--color-white);
+  --tw-prose-invert-counters: var(--color-neutral-400);
+  --tw-prose-invert-bullets: var(--color-neutral-600);
+  --tw-prose-invert-hr: var(--color-neutral-700);
+  --tw-prose-invert-quotes: var(--color-neutral-100);
+  --tw-prose-invert-quote-borders: var(--color-neutral-700);
+  --tw-prose-invert-captions: var(--color-neutral-400);
+  --tw-prose-invert-kbd: var(--color-white);
+  --tw-prose-invert-code: var(--color-white);
+  --tw-prose-invert-th-borders: var(--color-neutral-600);
+  --tw-prose-invert-td-borders: var(--color-neutral-700);
   max-width: none;
+  /* Reading size, set by theme.fontSize — independent of the UI density that
+     scales the root font size. Headings and spacing inside prose are em-based,
+     so they follow. */
+  font-size: var(--prose-size, 1rem);
 }
 .prose :where(a):hover {
   text-decoration-thickness: 2px;
@@ -302,6 +360,82 @@ code.with-line-numbers .code-line::before {
   text-align: right;
   color: color-mix(in srgb, currentColor 35%, transparent);
   user-select: none;
+}
+
+/* --- Wiki links ---------------------------------------------------------- */
+/* `[[a note]]` renders here. A resolved link is dotted-underlined in the accent
+   and previews its destination on hover; an unresolved one is marked, not
+   hidden, so a typo is visible in the page instead of silently doing nothing. */
+.wikilink-host {
+  position: relative;
+  display: inline-block;
+}
+.wikilink {
+  color: var(--accent);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.wikilink:hover {
+  text-decoration-style: solid;
+}
+.wikilink-static {
+  cursor: default;
+}
+.wikilink-broken {
+  color: #e11d48;
+  cursor: help;
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.dark .wikilink-broken {
+  color: #fb7185;
+}
+.wikilink-preview {
+  position: absolute;
+  bottom: calc(100% + 0.4rem);
+  left: 0;
+  z-index: 40;
+  display: none;
+  width: max-content;
+  max-width: 20rem;
+  flex-direction: column;
+  gap: 0.2rem;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-xl);
+  background: var(--color-white);
+  padding: 0.55rem 0.7rem;
+  box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.35);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  pointer-events: none;
+  white-space: normal;
+}
+.dark .wikilink-preview {
+  border-color: var(--color-neutral-700);
+  background: var(--color-neutral-800);
+}
+.wikilink-host:hover .wikilink-preview,
+.wikilink-host:focus-within .wikilink-preview {
+  display: flex;
+}
+.wikilink-preview-title {
+  font-weight: 600;
+  color: var(--color-neutral-800);
+}
+.dark .wikilink-preview-title {
+  color: var(--color-neutral-100);
+}
+.wikilink-preview-body {
+  color: var(--color-neutral-500);
+}
+.wikilink-preview-tags {
+  color: var(--accent);
+  font-size: 0.7rem;
 }
 
 /* Smooth entrance for routed content. */

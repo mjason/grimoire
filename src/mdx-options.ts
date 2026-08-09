@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
 import rehypeHighlight from "rehype-highlight";
 import { remarkCodeMeta, rehypeCodeLines, rehypeMermaid } from "./code-plugins";
+import { remarkWikiLink } from "./link-plugins";
 import { rehypeDmagic } from "./dmagic";
 
 export function mdxCompileOptions(outputFormat: "program" | "function-body") {
@@ -12,7 +13,7 @@ export function mdxCompileOptions(outputFormat: "program" | "function-body") {
     outputFormat,
     jsxImportSource: "preact",
     providerImportSource: "@mdx-js/preact",
-    remarkPlugins: [remarkGfm, remarkCodeMeta],
+    remarkPlugins: [remarkGfm, remarkCodeMeta, remarkWikiLink],
     rehypePlugins: [
       rehypeSlug,
       rehypeMermaid, // before highlight — pull ```mermaid out as a diagram

@@ -12,7 +12,11 @@ import { MDXProvider, useMDXComponents } from "@mdx-js/preact";
 import type { ComponentType } from "preact";
 import { builtinComponents } from "../components";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { ThemeProvider } from "../lib/theme";
+import { CurrentEntryProvider, SiteProvider } from "../lib/site";
 import { formatDate } from "../lib/notes";
+import type { GraphNode, LinkGraph } from "../../runtime/links";
+import type { ThemeSettings } from "../../runtime/theme";
 
 // Expose engine deps so the inlined user-component modules (imported from data:
 // URLs) can resolve `preact`, `preact/hooks`, … via the page's import map, whose
@@ -33,11 +37,57 @@ const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor as
   body: string,
 ) => (scope: Record<string, unknown>) => Promise<{ default: ComponentType<any> }>;
 
+interface LinkRef {
+  id: string;
+  title: string;
+  kind: "note" | "card";
+}
+
 interface Payload {
-  config: { title?: string; description?: string; author?: string; footer?: string };
-  note: { id: string; segments: string[]; lang: string; frontmatter: Record<string, any>; body: string };
+  config: {
+    title?: string;
+    description?: string;
+    author?: string;
+    footer?: string;
+    theme?: ThemeSettings;
+  };
+  note: {
+    id: string;
+    segments: string[];
+    lang: string;
+    frontmatter: Record<string, any>;
+    body: string;
+    links?: LinkRef[];
+    backlinks?: LinkRef[];
+  };
   // Each user component file, transpiled to an ES module and inlined as a data: URL.
   components: { name: string; module: string }[];
+}
+
+/**
+ * A one-note graph, so `[[wiki links]]` in an exported file still resolve to a
+ * real title (rendered as static text — there's nowhere to navigate to offline).
+ */
+function localOnlyGraph(note: Payload["note"]): LinkGraph {
+  const self: GraphNode = {
+    id: note.id,
+    kind: "note",
+    title: String(note.frontmatter?.title ?? note.id),
+    tags: Array.isArray(note.frontmatter?.tags) ? note.frontmatter.tags.map(String) : [],
+    degree: 0,
+  };
+  const refs = [...(note.links ?? []), ...(note.backlinks ?? [])];
+  const nodes: GraphNode[] = [
+    self,
+    ...refs.map((r) => ({ id: r.id, kind: r.kind, title: r.title, tags: [], degree: 1 })),
+  ];
+  return {
+    nodes,
+    edges: [],
+    outgoing: { [note.id]: (note.links ?? []).map((r) => r.id) },
+    backlinks: { [note.id]: (note.backlinks ?? []).map((r) => r.id) },
+    broken: [],
+  };
 }
 
 async function boot() {
@@ -78,10 +128,46 @@ async function boot() {
   }
 
   render(
-    <MDXProvider components={components}>
-      <StandalonePage data={data} Body={Body} />
-    </MDXProvider>,
+    <ThemeProvider siteTheme={data.config?.theme}>
+      <SiteProvider graph={localOnlyGraph(data.note)} navigable={false}>
+        <CurrentEntryProvider id={data.note.id}>
+          <MDXProvider components={components}>
+            <StandalonePage data={data} Body={Body} />
+          </MDXProvider>
+        </CurrentEntryProvider>
+      </SiteProvider>
+    </ThemeProvider>,
     root,
+  );
+}
+
+/** The note's place in the graph, frozen into plain text for an offline file. */
+function StaticConnections({ note }: { note: Payload["note"] }) {
+  const groups: { label: string; refs: LinkRef[] }[] = [
+    { label: "Links to", refs: note.links ?? [] },
+    { label: "Linked from", refs: note.backlinks ?? [] },
+  ].filter((g) => g.refs.length > 0);
+  if (groups.length === 0) return null;
+
+  return (
+    <section class="mt-12 border-t border-neutral-200 pt-6 dark:border-neutral-800">
+      <div class="grid gap-5 sm:grid-cols-2">
+        {groups.map((group) => (
+          <div key={group.label}>
+            <div class="grimoire-category text-neutral-400">
+              {group.label}
+            </div>
+            <ul class="mt-2 space-y-1 text-sm text-neutral-600 dark:text-neutral-300">
+              {group.refs.map((ref) => (
+                <li key={ref.id}>
+                  {ref.kind === "card" ? "🃏" : "📄"} {ref.title}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -104,7 +190,7 @@ function StandalonePage({ data, Body }: { data: Payload; Body: ComponentType<any
         <article class="animate-fade">
           <header class="mb-8 border-b border-neutral-200 pb-6 dark:border-neutral-800">
             {data.note.segments.length > 0 && (
-              <div class="mb-2 text-xs font-medium uppercase tracking-wider text-[var(--accent)]">
+              <div class="grimoire-category mb-2 text-[var(--accent)]">
                 {data.note.segments.join(" / ")}
               </div>
             )}
@@ -131,6 +217,7 @@ function StandalonePage({ data, Body }: { data: Payload; Body: ComponentType<any
           <div class="prose prose-neutral max-w-none dark:prose-invert">
             <Body />
           </div>
+          <StaticConnections note={data.note} />
         </article>
 
         {data.config.footer && (

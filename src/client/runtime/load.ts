@@ -11,9 +11,11 @@ const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor as
 
 const cache = new Map<string, Promise<ComponentType<any>>>();
 
-async function compileNote(id: string, lang: string): Promise<ComponentType<any>> {
-  const path = id.split("/").map(encodeURIComponent).join("/");
-  const res = await fetch(`/api/note/${path}?lang=${encodeURIComponent(lang)}`);
+const encodeId = (id: string) => id.split("/").map(encodeURIComponent).join("/");
+
+/** Fetch a compiled MDX function-body and evaluate it into a component. */
+async function evaluate(url: string): Promise<ComponentType<any>> {
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`${res.status} ${(await res.text()).slice(0, 200)}`);
   const body = await res.text();
   const scope = { ...jsxRuntime, useMDXComponents, baseUrl: location.href };
@@ -21,14 +23,25 @@ async function compileNote(id: string, lang: string): Promise<ComponentType<any>
   return mod.default;
 }
 
-export function loadNoteComponent(id: string, lang: string): Promise<ComponentType<any>> {
-  const key = `${lang}::${id}`;
+function cached(key: string, load: () => Promise<ComponentType<any>>): Promise<ComponentType<any>> {
   let p = cache.get(key);
   if (!p) {
-    p = compileNote(id, lang);
+    p = load();
     cache.set(key, p);
   }
   return p;
+}
+
+export function loadNoteComponent(id: string, lang: string): Promise<ComponentType<any>> {
+  return cached(`note:${lang}::${id}`, () =>
+    evaluate(`/api/note/${encodeId(id)}?lang=${encodeURIComponent(lang)}`),
+  );
+}
+
+export function loadCardComponent(id: string, lang: string): Promise<ComponentType<any>> {
+  return cached(`card:${lang}::${id}`, () =>
+    evaluate(`/api/card/${encodeId(id)}?lang=${encodeURIComponent(lang)}`),
+  );
 }
 
 export function clearNoteCache(): void {
@@ -37,23 +50,36 @@ export function clearNoteCache(): void {
 
 /** A component that lazily fetches + evaluates a note's compiled MDX on mount. */
 export function lazyNote(id: string, lang: string): ComponentType<any> {
-  return function LazyNote(props: Record<string, unknown>) {
+  return lazyBody(id, () => loadNoteComponent(id, lang), "Note");
+}
+
+/** The same, for one card's markdown body. */
+export function lazyCard(id: string, lang: string): ComponentType<any> {
+  return lazyBody(`${lang}::${id}`, () => loadCardComponent(id, lang), "Card");
+}
+
+function lazyBody(
+  id: string,
+  load: () => Promise<ComponentType<any>>,
+  label: string,
+): ComponentType<any> {
+  return function LazyBody(props: Record<string, unknown>) {
     const [state, setState] = useState<{ Comp?: ComponentType<any>; err?: string }>({});
     useEffect(() => {
       let alive = true;
       setState({});
-      loadNoteComponent(id, lang).then(
+      load().then(
         (Comp) => alive && setState({ Comp }),
         (e) => {
           const err = String(e?.message ?? e);
-          console.error(`[grimoire] Note "${id}": ${err.split("\n")[0]}`);
+          console.error(`[grimoire] ${label} "${id}": ${err.split("\n")[0]}`);
           if (alive) setState({ err });
         },
       );
       return () => {
         alive = false;
       };
-    }, [id, lang]);
+    }, [id]);
 
     if (state.err) {
       return h(
@@ -62,7 +88,7 @@ export function lazyNote(id: string, lang: string): ComponentType<any> {
           class:
             "not-prose rounded-xl border border-rose-300 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300",
         },
-        h("strong", null, "Failed to render note. "),
+        h("strong", null, `Failed to render ${label.toLowerCase()}. `),
         state.err,
       );
     }

@@ -1,11 +1,40 @@
 import type { ComponentType } from "preact";
+import type {
+  ColorMode,
+  Density,
+  FontChoice,
+  ThemePresetInput,
+  ThemeSettings,
+} from "./runtime/theme";
 
 /** Visual + behavioural configuration for the whole site. */
-export interface ThemeConfig {
-  /** A Tailwind color name used as the accent, e.g. "violet", "emerald", "sky". */
+export interface ThemeConfig extends ThemeSettings {
+  /**
+   * A built-in preset name (grimoire | slate | paper | nord | carbon | sakura),
+   * the id of one of your own `presets`, or a whole palette defined inline.
+   */
+  preset?: string | ThemePresetInput;
+  /**
+   * Your own palettes, added to the picker alongside the built-ins. Give one the
+   * id of a built-in to re-tune that built-in instead of adding a new entry.
+   */
+  presets?: ThemePresetInput[];
+  /** An accent name ("violet", "emerald", …) or any hex value ("#0ea5e9"). */
   accent?: string;
+  /** Corner radius multiplier: 0 (sharp) … 2 (very round). */
+  radius?: number;
+  /** Body typeface. */
+  font?: FontChoice;
+  /** Reading density — scales the root font size, and with it the whole UI. */
+  density?: Density;
+  /** Reading text size for `.prose` only: 0.75 … 1.6. Independent of `density`. */
+  fontSize?: number;
   /** Initial color mode. "system" follows the OS preference. */
-  defaultMode?: "light" | "dark" | "system";
+  mode?: ColorMode;
+  /** Legacy alias for `mode`, still honoured. */
+  defaultMode?: ColorMode;
+  /** Let readers pick their own theme (default true). */
+  picker?: boolean;
 }
 
 /** A supported UI/content language. */
@@ -51,6 +80,9 @@ export interface GrimoireConfig {
   /** Components directory, relative to the project root (or absolute). The
    *  `--components` flag overrides this. Default "components". */
   components?: string;
+  /** Card decks directory, relative to the project root (or absolute). The
+   *  `--cards` flag overrides this. Default "cards". */
+  cards?: string;
 }
 
 /** Frontmatter an author may place at the top of any `.mdx` note. */

@@ -5,6 +5,10 @@ import { Tabs, Tab } from "./Tabs";
 import { Steps, Step, Card, CardGrid, Badge, Kbd } from "./Layout";
 import { Pre, H2, H3, H4, A, Table } from "./elements";
 import { Mermaid } from "./Mermaid";
+import { WikiLink } from "./WikiLink";
+import { Graph, GraphView } from "./GraphView";
+import { Backlinks, Connections, Links } from "./Connections";
+import { CardBody, CardTile, Cards } from "./Cards";
 
 /**
  * Built-in components + the HTML element overrides (a, pre, h2…, table) handed
@@ -20,6 +24,7 @@ export const builtinComponents: Record<string, any> = {
   h4: H4,
   table: Table,
   mermaid: Mermaid, // ```mermaid fenced blocks (via rehypeMermaid)
+  wikilink: WikiLink, // [[wiki links]] (via remarkWikiLink)
   // Built-in rich components
   Mermaid,
   Chart,
@@ -33,4 +38,14 @@ export const builtinComponents: Record<string, any> = {
   CardGrid,
   Badge,
   Kbd,
+  // Knowledge graph + card notes
+  WikiLink,
+  Graph,
+  GraphView,
+  Backlinks,
+  Links,
+  Connections,
+  Cards,
+  CardTile,
+  CardBody,
 };

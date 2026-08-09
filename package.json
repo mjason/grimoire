@@ -1,6 +1,6 @@
 {
   "name": "grimoire",
-  "version": "0.6.6",
+  "version": "0.7.0",
   "description": "An AI-oriented, MDX-based note system that compiles to a single binary.",
   "type": "module",
   "module": "src/serve.ts",
@@ -23,14 +23,21 @@
     "chartjs",
     "single-binary",
     "static-site-generator",
-    "knowledge-base"
+    "knowledge-base",
+    "wiki-links",
+    "backlinks",
+    "knowledge-graph",
+    "zettelkasten",
+    "theming"
   ],
   "engines": {
     "bun": ">=1.3.12"
   },
   "scripts": {
     "test": "bun test",
-    "test:e2e": "bun run tests/e2e/tables.ts",
+    "test:e2e": "bun run tests/e2e/tables.ts && bun run tests/e2e/knowledge.ts",
+    "test:e2e:tables": "bun run tests/e2e/tables.ts",
+    "test:e2e:knowledge": "bun run tests/e2e/knowledge.ts",
     "engine": "bun run src/engine.ts",
     "dev": "bun run src/engine.ts && bun run src/serve.ts",
     "serve": "bun run src/serve.ts",

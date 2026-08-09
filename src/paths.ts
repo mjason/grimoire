@@ -7,5 +7,6 @@ export const SRC_DIR = dirname(fileURLToPath(import.meta.url));
 export const ROOT_DIR = resolve(SRC_DIR, "..");
 
 export const NOTES_DIR = join(ROOT_DIR, "notes");
+export const CARDS_DIR = join(ROOT_DIR, "cards");
 export const DIST_DIR = join(ROOT_DIR, "dist");
 export const CLIENT_DIR = join(SRC_DIR, "client");

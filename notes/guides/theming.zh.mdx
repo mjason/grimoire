@@ -1,0 +1,180 @@
+---
+title: 主题
+description: 配色、强调色、字体排印与密度——站点一套，每位读者还可以再要一套。
+tags: [指南, 主题, 设计]
+date: "2026-08-09"
+icon: 🎨
+order: 5
+---
+
+审美没有标准答案，所以 Grimoire 的外观是**数据**而不是代码。站点作者在
+`config.ts` 里定下默认值；每位读者随后都能在此之上叠加自己的偏好，保存在他们
+自己的浏览器里。两者用的是完全相同的一组旋钮。
+
+## 站点默认值
+
+```ts title="config.ts"
+export default {
+  theme: {
+    preset: "grimoire",   // 内置预设、自定义 presets 之一，或直接内联一整套配色
+    accent: "violet",     // 颜色名，或任意十六进制值如 "#0ea5e9"
+    mode: "system",       // light | dark | system
+    radius: 1,            // 0（直角）… 2（非常圆）
+    picker: true,         // 允许读者自选
+
+    font: "sans",         // 正文：sans | serif | mono
+    uiFont: "sans",       // 导航栏 —— 不写则跟随 font
+    categoryFont: "mono", // 分类标签 —— 不写则跟随 uiFont
+    fontSize: 1,          // 0.75 … 1.6，只作用于正文
+    uiFontSize: 1,        // 0.75 … 1.6，只作用于导航
+    categoryFontSize: 1,  // 0.75 … 1.6，只作用于分类标签
+    density: "comfortable", // compact | comfortable | spacious —— 缩放整个界面
+  },
+};
+```
+
+以上每一项都**保存即生效**——引擎二进制无需重新编译。如果站点的外观不容
+商量，把 `picker` 设为 `false` 即可。
+
+## 什么是预设
+
+一个预设就是一条**中性色阶**——所有背景、边框与文字所取用的那十一级灰——
+外加强调色、字体与圆角的合理默认值。
+
+| 预设 | 气质 |
+| --- | --- |
+| `grimoire` | 纯中性灰——最初的样子 |
+| `slate` | 偏冷的蓝灰 |
+| `paper` | 暖褐配衬线正文，适合长读 |
+| `nord` | 清冷的蓝色表面，青色强调 |
+| `carbon` | 高对比，近乎直角 |
+| `sakura` | 柔和的暖粉，圆角慷慨 |
+
+## 自己定义一套配色
+
+六种意见终究只是六种意见。在 `config.ts` 里声明自己的配色，它就会出现在
+选择器里，与内置预设并列：
+
+```ts title="config.ts"
+theme: {
+  preset: "moss",
+  presets: [
+    {
+      id: "moss",
+      label: "Moss",
+      hint: "冷调绿灰，低饱和。",
+      extends: "paper",              // 没写的字段从它继承
+      accent: "#4d7c0f",
+      white: "oklch(99% 0.008 150)", // 可选：`bg-white` 变成什么
+      neutral: [                     // 必填：11 个颜色，50 → 950
+        "oklch(97.6% 0.009 150)", "oklch(95.6% 0.012 150)", "oklch(91.4% 0.016 148)",
+        "oklch(86% 0.019 146)",   "oklch(70.4% 0.025 144)", "oklch(55.2% 0.027 142)",
+        "oklch(44.4% 0.025 140)", "oklch(37.2% 0.023 138)", "oklch(27% 0.019 136)",
+        "oklch(21.4% 0.016 134)", "oklch(15% 0.013 132)",
+      ],
+    },
+  ],
+}
+```
+
+规则:
+
+- **十一级要么写全，要么不写。** 数量不对或格式错误的色阶会被整个拒绝并在
+  终端报出——半套上去的配色比明确失败更糟。
+- `neutral` 也接受按级号书写的对象：`{ "50": "…", "100": "…" }`。
+- 复用内置预设的 id 即可**就地微调**它：`{ id: "paper", accent: "#111" }`
+  保留 Paper 的色阶，只换强调色。
+- 一条色阶同时覆盖明暗两种模式——浅色取 50–200，深色取 800–950。
+- 只用一次的话，可以完全不写 `presets`，直接把配色内联进 `preset: { … }`。
+
+<Callout type="tip" title="怎么挑这十一级灰">
+从某个内置色阶出发调色相：保持各级的明度百分比不变，改掉色相角，再把色阶
+中段的彩度略微提高——那里的着色最明显。用 `oklch()` 时这只是改一个数字。
+</Callout>
+
+## 字体：三个作用域
+
+一个页面上有三类文字，它们很少想要同一种处理。每一类都有自己的字体与字号
+倍率，并且**逐级向上回退**——所以只写 `font` 就能保持整体统一，需要区分时
+再单独覆盖。
+
+| 设置 | 作用于 | 缺省取自 |
+| --- | --- | --- |
+| `font` / `fontSize` | 正文（`.prose`） | 预设的字体 / `1` |
+| `uiFont` / `uiFontSize` | 导航栏——侧边栏、顶栏、搜索框 | `font` / `1` |
+| `categoryFont` / `categoryFontSize` | 分类标签、区块标题、面包屑 | `uiFont` / `1` |
+
+```ts title="config.ts"
+theme: {
+  font: "serif",        // 长文阅读
+  uiFont: "sans",       // 但导航保持利落
+  categoryFont: "mono", // 标签用一种展示字体
+  categoryFontSize: 0.9,
+}
+```
+
+在标记里，它们就是两个可以复用到自己组件上的类：`grimoire-nav`（导航字体，
+受 `--ui-scale` 缩放）和 `grimoire-category`（分类字体、大写、受
+`--category-scale` 缩放）。`.grimoire-nav` 内部的字号都以 `em` 书写，因此
+`uiFontSize` 能一次性作用到全部。
+
+## 字号与密度
+
+`density` 与上面那些倍率是不同的一个维度：
+
+| | 缩放范围 | 用来解决 |
+| --- | --- | --- |
+| `density` | 根字号——由于布局基于 rem，实际是*所有东西* | 一屏能放多少内容 |
+| `fontSize` 等 | 各自一个作用域，分别通过 `--prose-size` / `--ui-scale` / `--category-scale` | 那部分文字有多大 |
+
+它们全都以比例输出（`html { font-size: 93.75% }`）而非像素——所以读者自己
+调高过的浏览器默认字号（通常正是因为需要）会被保留。
+
+## 它是怎么工作的
+
+Tailwind v4 的工具类并不写死颜色——它们读取主题变量：
+
+```css
+.bg-neutral-50 { background-color: var(--color-neutral-50); }
+.rounded-2xl   { border-radius: var(--radius-2xl); }
+```
+
+于是整个主题系统就只是一段自定义属性，在 Tailwind 自己的声明之后重新声明在
+`:root` 上——这也正是 `presets` 里的一条配置最终变成的东西：
+
+```css
+:root {
+  --color-neutral-50: oklch(97.4% 0.011 86);
+  /* …色阶的其余部分… */
+  --color-white: oklch(98.8% 0.012 88);
+  --radius-2xl: 0.6rem;
+  --font-body: ui-serif, Georgia, serif;
+  --accent: #b45309;
+}
+```
+
+所有既有组件会一次性换色，而不需要改动任何一个类名。全部秘密就在这里——
+参见 [[theme-tokens]]。
+
+<Callout type="tip" title="自定义组件自动跟上">
+用 `neutral` 工具类和 `var(--accent)` 给自己的组件写样式，它们就会自动继承每
+一个预设。只要不写死十六进制颜色，你从此再也不必操心主题。
+</Callout>
+
+## 读者自己的那一份
+
+侧边栏的调色板按钮会打开同一组控件。选择保存在本地，连同生成好的 CSS 一起，
+因此个人主题会在**首次绘制之前**就被应用——不会先闪一下站点默认样式。点击
+「恢复默认」即把外观交还给作者。
+
+## 深色模式
+
+深色模式是 `<html>` 上的一个类，而不是另一套配色：同一条色阶从另一端读取
+（`bg-white` → `dark:bg-neutral-950`）。在自己的组件里把两种写法都写上，每个
+预设就都能在两种模式下工作：
+
+```tsx
+<div class="border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+```
+
+想完整了解引擎如何把配置变成一个可访问的页面，见 [[engine-boot]]。

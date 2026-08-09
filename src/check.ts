@@ -65,8 +65,28 @@ export async function runCheck(root: string): Promise<number> {
   const manifest = (await (await fetch(`${base}/api/manifest`)).json()) as {
     config?: { i18n?: { defaultLocale?: string } };
     notes: { id: string; lang: string | null }[];
+    cards?: { id: string; lang?: string | null }[];
   };
   const defaultLocale = manifest.config?.i18n?.defaultLocale ?? "en";
+
+  // Every page the router can reach: notes, the graph, the card deck, each card.
+  const encode = (id: string) => id.split("/").map(encodeURIComponent).join("/");
+  const targets: { label: string; lang: string; hash: string }[] = [
+    ...manifest.notes.map((note) => ({
+      label: `${note.id}${note.lang ? ` ${DIM}[${note.lang}]${RESET}` : ""}`,
+      lang: note.lang ?? defaultLocale,
+      hash: `#/n/${encode(note.id)}`,
+    })),
+    { label: `${DIM}route${RESET} graph`, lang: defaultLocale, hash: "#/graph" },
+    ...(manifest.cards?.length
+      ? [{ label: `${DIM}route${RESET} cards`, lang: defaultLocale, hash: "#/cards" }]
+      : []),
+    ...(manifest.cards ?? []).map((card) => ({
+      label: `${DIM}card${RESET} ${card.id}${card.lang ? ` ${DIM}[${card.lang}]${RESET}` : ""}`,
+      lang: card.lang ?? defaultLocale,
+      hash: `#/card/${encode(card.id)}`,
+    })),
+  ];
 
   // Prefer an explicitly configured Chrome path (Bun reads BUN_CHROME_PATH).
   const chromePath = process.env.GRIMOIRE_CHROMIUM || process.env.CHROME_PATH;
@@ -92,14 +112,11 @@ export async function runCheck(root: string): Promise<number> {
   }
 
   let failures = 0;
-  for (let i = 0; i < manifest.notes.length; i++) {
-    const note = manifest.notes[i]!;
-    const lang = note.lang ?? defaultLocale;
-    const label = `${note.id}${note.lang ? ` ${DIM}[${note.lang}]${RESET}` : ""}`;
+  for (let i = 0; i < targets.length; i++) {
+    const { label, lang, hash } = targets[i]!;
     current = [];
 
-    const path = note.id.split("/").map(encodeURIComponent).join("/");
-    const url = `${base}/?lang=${encodeURIComponent(lang)}&_check=${i}#/n/${path}`;
+    const url = `${base}/?lang=${encodeURIComponent(lang)}&_check=${i}${hash}`;
     try {
       await wv.navigate(url);
       await sleep(1400); // let effects (incl. Mermaid) run
@@ -126,7 +143,7 @@ export async function runCheck(root: string): Promise<number> {
   await rm(stateFile, { force: true });
 
   process.stdout.write(
-    `\n${failures === 0 ? GREEN + "✓" : RED + "✗"} ${manifest.notes.length - failures}/${manifest.notes.length} notes rendered clean${RESET}\n`,
+    `\n${failures === 0 ? GREEN + "✓" : RED + "✗"} ${targets.length - failures}/${targets.length} pages rendered clean${RESET}\n`,
   );
   return failures === 0 ? 0 : 1;
 }

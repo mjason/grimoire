@@ -10,8 +10,11 @@ import { MDXProvider } from "@mdx-js/preact";
 import { App } from "../app";
 import { builtinComponents } from "../components";
 import { LocaleProvider } from "../i18n";
+import { ThemeProvider } from "../lib/theme";
+import { SiteProvider, type CardMeta } from "../lib/site";
 import { lazyNote } from "./load";
 import type { RawNote } from "../lib/notes";
+import type { LinkGraph } from "../../runtime/links";
 import type { GrimoireConfig } from "../../types";
 
 // Expose engine deps so runtime-loaded user components (served as ES modules)
@@ -33,6 +36,8 @@ if (typeof window !== "undefined") {
 interface Manifest {
   config: GrimoireConfig;
   notes: { id: string; segments: string[]; lang: string | null; frontmatter: Record<string, any> }[];
+  cards?: CardMeta[];
+  graph?: LinkGraph;
   components: { name: string; url: string }[];
 }
 
@@ -78,11 +83,15 @@ async function boot() {
   const components = { ...builtinComponents, ...userComponents };
 
   render(
-    <LocaleProvider i18n={manifest.config?.i18n}>
-      <MDXProvider components={components}>
-        <App config={manifest.config} rawNotes={rawNotes} />
-      </MDXProvider>
-    </LocaleProvider>,
+    <ThemeProvider siteTheme={manifest.config?.theme}>
+      <LocaleProvider i18n={manifest.config?.i18n}>
+        <SiteProvider cards={manifest.cards} graph={manifest.graph}>
+          <MDXProvider components={components}>
+            <App config={manifest.config} rawNotes={rawNotes} />
+          </MDXProvider>
+        </SiteProvider>
+      </LocaleProvider>
+    </ThemeProvider>,
     root,
   );
 
